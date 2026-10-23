@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#F7F9FC">
+    <title>Campanhas · Benion</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='4' y='4' width='56' height='56' rx='18' fill='%23285DE5'/%3E%3Cpath d='M23 18v29h13c7 0 11-5 11-11s-4-11-11-11H23m0 11h12' fill='none' stroke='white' stroke-width='5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+    <link rel="stylesheet" href="/styles.css">
+    <script type="module" src="/app.mjs"></script>
+  </head>
+<body><a class="skip-link" href="#main">Pular para o conteúdo</a>
+<header class="app-header">
+  <a class="brand" href="#publishing" aria-label="Benion, início"><span class="brand-mark" aria-hidden="true">b</span><span class="brand-word" aria-hidden="true">benion<span class="brand-period">.</span></span></a>
+</header>
+<div class="shell"><aside id="app-navigation" class="navigation" aria-label="Navegação principal"><nav>
+<a id="nav-publishing" class="nav-item" href="#publishing"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v16H4zM8 2v6m8-6v6M4 11h16"/></svg><span>Campanhas</span></a>
+<a id="nav-automation" class="nav-item" href="#automation"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m13 3-8 11h6l-1 7 9-12h-6z"/></svg><span>Automações</span></a>
+<a id="nav-inbox" class="nav-item" href="#inbox"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v12H9l-5 4zM8 8h8M8 12h5"/></svg><span>Conversas</span><span id="inbox-nav-count" class="nav-count" hidden>0</span></a>
+<a id="nav-catalog" class="nav-item" href="#catalog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h7v16H4zM13 4h7v16h-7zM7 8h1M16 8h1"/></svg><span>Produtos</span></a>
+<a id="nav-settings" class="nav-item" href="#settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 17h16M8 4v6m8 4v6"/></svg><span>Ajustes</span></a>
+</nav>
+<div class="sidebar-account">
+  <div class="account">
+    <label for="account-select" class="sr-only">Conta do Instagram em atendimento</label>
+    <span class="select-wrap"><select id="account-select" aria-describedby="connection-status-label account-scope-note" disabled><option value="">Carregando conta…</option></select><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span>
+    <span id="connection-status" class="connection-status"><span class="status-dot" aria-hidden="true"></span><span id="connection-status-label">Verificando conexão</span></span>
+  </div>
+  <button id="open-connection" class="button ghost sidebar-accounts" type="button" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a4 4 0 1 0 0-8a4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0"/></svg><span class="button-label">Contas</span></button>
+</div>
+</aside><main id="main" tabindex="-1">
+<p id="network-state" class="offline-strip" role="status" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18M8.5 6.3A6 6 0 0 1 17.7 10h.3a4 4 0 0 1 2.3 7.3M17 19H7a5 5 0 0 1-2.2-9.5"/></svg><span>Você está offline. Os dados exibidos podem estar desatualizados. Seus rascunhos continuam aqui.</span></p>
+<p id="account-scope-note" class="account-scope-note sr-only" role="status">Verificando a conta selecionada…</p>
+
+<section id="publishing-view" aria-labelledby="publishing-title">
+<div id="publishing-home" class="flow-surface screen">
+  <div class="page-heading"><div class="page-heading-text"><h1 id="publishing-title">Suas campanhas</h1><p class="page-description">Agende Reels com a DM pronta e descubra quais geram mais conversas.</p></div><button id="publishing-refresh" class="button ghost" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 8a8 8 0 1 0 0 8M20 3v5h-5"/></svg><span class="button-label">Atualizar</span></button></div>
+  <p id="publishing-status" class="list-status" role="status">Carregando campanhas…</p>
+  <div id="publishing-groups" class="choice-list"></div>
+  <div class="flow-actions"><button id="publishing-new-group" class="button primary wide" type="button">Criar campanha</button></div>
+</div>
+<form id="publishing-group-form" class="flow-surface screen" hidden novalidate>
+  <button id="publishing-group-back" class="button ghost back-button" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg>Campanhas</button>
+  <h1>Qual é a campanha?</h1><p class="page-description">Agrupe vídeos com o mesmo objetivo. Cada Reel pode ter sua própria DM.</p>
+  <label class="field"><span>Nome da campanha</span><input id="publishing-group-name" maxlength="80" required placeholder="Ex.: Meu produto · Outubro"></label>
+  <div class="flow-actions"><button id="publishing-create-group" class="button primary wide" type="submit">Criar campanha</button></div>
+</form>
+<div id="publishing-detail" class="screen" hidden>
+  <button id="publishing-detail-back" class="button ghost back-button" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg>Campanhas</button>
+  <div class="page-heading"><div class="page-heading-text"><h1 id="publishing-group-title"></h1><p id="publishing-group-summary" class="page-description"></p></div><button id="publishing-detail-refresh" class="button ghost" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 8a8 8 0 1 0 0 8M20 3v5h-5"/></svg><span class="button-label">Atualizar resultados</span></button></div>
+  <p class="hint comparison-note">Ordenado por DMs aceitas pela Meta, acumuladas desde a publicação. Os vídeos podem ter tempos diferentes no ar. Aceite não comprova entrega nem leitura.</p>
+  <div id="publishing-results" class="publication-list"></div>
+  <div class="flow-actions flow-surface"><button id="publishing-add-reel" class="button primary wide" type="button">Agendar Reel nesta campanha</button></div>
+</div>
+<form id="publishing-form" class="flow-surface screen" hidden novalidate>
+  <div class="wizard-header"><button id="publishing-cancel-editor" class="button ghost wizard-exit" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>Sair<span class="sr-only"> do agendamento</span></button><progress id="publishing-progress" max="4" value="1" aria-label="Progresso do agendamento"></progress><p id="publishing-step-label" class="wizard-count" role="status">Passo 1 de 4</p></div>
+  <p id="publishing-flow-label" class="wizard-flow">Agendar Reel</p>
+  <div id="publishing-step-0" class="wizard-step"><h1>Qual vídeo vamos publicar?</h1>
+    <label class="field"><span>Nome para identificar este Reel</span><input id="publishing-reel-title" maxlength="80" required placeholder="Ex.: Dica de currículo 01"></label>
+    <fieldset id="publishing-video-source" class="field option-group"><legend>Vídeo</legend>
+      <label class="option"><input type="radio" name="publishingVideoSource" value="file" checked><span class="option-text"><strong>Enviar um arquivo</strong><span>MP4 de até 100 MB.</span></span></label>
+      <label class="option"><input type="radio" name="publishingVideoSource" value="url"><span class="option-text"><strong>Usar um link de vídeo</strong><span>Link direto HTTPS para o MP4.</span></span></label>
+    </fieldset>
+    <div id="publishing-file-field" class="field"><span class="field-label">Arquivo do vídeo</span><label class="file-drop"><input id="publishing-file" class="file-input" type="file" accept="video/mp4,.mp4"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h12v12H3zM15 10l6-3v10l-6-3z"/></svg><span class="file-drop-text"><strong id="publishing-file-name">Escolher vídeo MP4</strong><span id="publishing-file-meta">Até 100 MB</span></span></label></div>
+    <label id="publishing-url-field" class="field" hidden><span>Link direto HTTPS do vídeo</span><input id="publishing-video-url" type="url" placeholder="https://…/video.mp4"></label>
+    <label class="field"><span>Legenda no Instagram</span><textarea id="publishing-caption" rows="4" maxlength="4400" placeholder="Sua legenda…"></textarea></label>
+  </div>
+  <div id="publishing-step-1" class="wizard-step" hidden><h1>Quando vai ao ar?</h1><label class="field"><span>Data e hora · São Paulo</span><input id="publishing-at" type="datetime-local" required></label><p class="hint">O Benion prepara o vídeo antes do horário e publica pelo servidor. O processamento da Meta pode causar atraso. Não é preciso manter este painel aberto.</p></div>
+  <div id="publishing-step-2" class="wizard-step" hidden><h1>O que vai na DM?</h1><p class="hint">Qualquer comentário neste Reel inicia a automação.</p>
+    <label class="field"><span>Mensagem da DM</span><textarea id="publishing-dm-text" rows="5" maxlength="1000" required placeholder="Ooopa, tudo bem? Aqui está o link para testar de graça!" aria-describedby="publishing-dm-size"></textarea></label>
+    <label class="field"><span>Link que será enviado</span><input id="publishing-dm-link" type="url" required placeholder="https://example.com" aria-describedby="publishing-dm-size"></label>
+    <p id="publishing-dm-size" class="hint" hidden></p>
+    <div class="notice"><p><strong>O joguinho já está pronto 🦀</strong></p><p>O Benion alterna os personagens e raridades. Exemplo: “🦀🧀 caranqueijo [raro] te enviou o link na dm”. A resposta pública só acontece depois que a Meta aceita a DM.</p></div>
+  </div>
+  <div id="publishing-step-3" class="wizard-step" hidden><h1>Tudo pronto para agendar?</h1><dl id="publishing-review" class="review-card"></dl><p class="notice">Ao confirmar, você autoriza a publicação no horário escolhido e as respostas automáticas aos comentários deste Reel.</p></div>
+  <div class="flow-actions"><button id="publishing-next" class="button primary wide" type="button">Continuar</button><button id="publishing-submit" class="button primary wide" type="submit" hidden>Confirmar agendamento</button><button id="publishing-back" class="button ghost wide" type="button" hidden>Voltar</button></div>
+</form>
+<p id="publishing-feedback" class="feedback" role="status" hidden></p></section>
+
+<section id="automation-view" hidden aria-labelledby="automation-title">
+<div id="automation-home" class="flow-surface screen">
+  <div class="page-heading"><div class="page-heading-text"><h1 id="automation-title">Suas automações</h1><p class="page-description">Um comentário. Uma nova conversa.</p></div><button id="refresh-campaigns" class="button ghost" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 8a8 8 0 1 0 0 8M20 3v5h-5"/></svg><span class="button-label">Atualizar</span></button></div>
+  <section id="campaign-manager" aria-labelledby="campaign-title"><h2 id="campaign-title" class="sr-only">Respostas a comentários</h2><p id="campaign-source" class="list-status" role="status">Carregando suas automações…</p><div id="campaign-list" class="choice-list"></div></section>
+  <section class="assistant-group" aria-labelledby="assistant-group-title"><h2 id="assistant-group-title" class="section-label">Assistente</h2><div class="choice-list">
+    <a class="choice assistant-entry" href="#assistant"><span class="choice-text"><strong>Assistente de conversas</strong><span class="choice-meta">Tarefas, tom de voz e ativação desta conta.</span></span><span id="assistant-overall-state" class="status" data-kind="neutral">IA pausada</span><svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></a>
+    <a class="choice" href="#preview"><span class="choice-text"><strong>Testar uma resposta</strong><span class="choice-meta">Simulação com o catálogo salvo. Nenhuma DM é enviada.</span></span><svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></a>
+  </div></section>
+  <div class="flow-actions"><p id="automation-next-note" class="hint">Comece escolhendo um Reel e a mensagem que ele vai enviar.</p><button id="new-campaign" class="button primary wide" type="button">Criar automação</button><button id="connect-first-account" class="button primary wide" type="button" hidden>Conectar Instagram</button></div>
+</div>
+<section id="campaign-detail" class="flow-surface screen" hidden aria-labelledby="campaign-detail-title"><button id="campaign-detail-back" class="button ghost back-button" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg>Automações</button><div id="campaign-detail-content"></div><div id="campaign-detail-actions" class="flow-actions"></div></section>
+<form id="campaign-form" class="flow-surface screen campaign-editor" hidden novalidate>
+  <div class="wizard-header"><button id="cancel-campaign" class="button ghost wizard-exit" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>Sair<span class="sr-only"> e guardar rascunho</span></button><progress id="campaign-progress" max="5" value="1" aria-label="Progresso da automação"></progress><p id="campaign-step-label" class="wizard-count" role="status"></p></div>
+  <p id="campaign-form-title" class="wizard-flow">Nova automação</p>
+  <div id="campaign-step-0" class="wizard-step"><h1>Onde vamos conversar?</h1>
+    <fieldset id="campaign-scope" class="field option-group" aria-describedby="campaign-scope-note"><legend>Quais Reels?</legend>
+      <label class="option"><input type="radio" name="campaignScope" value="reel" checked><span class="option-text"><strong>Um Reel específico</strong><span>Escolha uma publicação da conta.</span></span></label>
+      <label class="option"><input type="radio" name="campaignScope" value="all_reels"><span class="option-text"><strong>Todos os Reels</strong><span>Atuais e futuros.</span></span></label>
+    </fieldset>
+    <p id="campaign-scope-note" class="hint"></p>
+    <label id="campaign-media-field" class="field"><span>Reel da sua conta</span><span class="select-wrap"><select id="campaign-media" required disabled aria-describedby="campaign-media-note"><option value="">Carregando Reels…</option></select><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span></label><p id="campaign-media-note" class="hint"></p>
+  </div>
+  <div id="campaign-step-1" class="wizard-step" hidden><h1>Quais comentários recebem a DM?</h1>
+    <fieldset id="campaign-trigger" class="field option-group"><legend>Quando alguém comentar…</legend>
+      <label class="option"><input type="radio" name="campaignTrigger" value="any" checked><span class="option-text"><strong>Qualquer comentário</strong></span></label>
+      <label class="option"><input type="radio" name="campaignTrigger" value="keywords"><span class="option-text"><strong>Uma das palavras que eu escolher</strong></span></label>
+    </fieldset>
+    <label id="campaign-keywords-field" class="field" hidden><span>Palavras, separadas por vírgula</span><input id="campaign-keywords" maxlength="600" placeholder="quero, link"></label>
+    <p class="hint">Somente comentários novos após a ativação. Os anteriores ficam protegidos contra reenvio.</p>
+  </div>
+  <div id="campaign-step-2" class="wizard-step" hidden><h1>O que vai na DM?</h1><p class="page-description">Escreva uma mensagem acolhedora e inclua seu link.</p><label class="field"><span>Primeira mensagem</span><textarea id="campaign-message" rows="6" maxlength="1000" required placeholder="Oi! Aqui está o link para conhecer…" aria-describedby="campaign-message-size"></textarea><small id="campaign-message-size" class="hint" hidden></small></label></div>
+  <div id="campaign-step-3" class="wizard-step" hidden><h1>E no comentário?</h1><fieldset id="campaign-public-replies" class="campaign-public-replies"><legend class="sr-only">Respostas públicas</legend><p id="campaign-public-replies-note" class="hint">Opcional. A resposta aparece depois que a Meta aceita a DM.</p><label class="field"><span>Resposta pública</span><textarea id="campaign-public-reply-0" rows="3" maxlength="1000" placeholder="Enviei o link na sua DM 🎈" aria-describedby="campaign-public-replies-note"></textarea></label><details class="disclosure"><summary><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>Adicionar variações de resposta</summary><label class="field"><span>Variação 2</span><textarea id="campaign-public-reply-1" rows="2" maxlength="1000"></textarea></label><label class="field"><span>Variação 3</span><textarea id="campaign-public-reply-2" rows="2" maxlength="1000"></textarea></label></details></fieldset></div>
+  <div id="campaign-step-4" class="wizard-step" hidden><h1>Tudo certo para salvar?</h1><label class="field"><span>Nome da automação</span><input id="campaign-name" required maxlength="80" placeholder="Ex.: link do meu produto"></label><dl id="campaign-review" class="review-card"></dl><p id="campaign-review-note" class="hint"></p></div>
+  <div class="flow-actions"><button id="campaign-next" class="button primary wide" type="button">Continuar</button><button id="save-campaign" class="button primary wide" type="submit" hidden disabled>Salvar automação pausada</button><button id="campaign-back" class="button ghost wide" type="button" hidden>Voltar</button></div>
+</form><p id="campaign-feedback" class="feedback" role="status" hidden></p></section>
+
+<section id="inbox-view" hidden aria-labelledby="inbox-title">
+  <div class="page-heading"><div class="page-heading-text"><h1 id="inbox-title">Conversas</h1><p class="page-description">Acompanhe o Direct e assuma a conversa quando precisar.</p></div><button id="refresh-inbox" class="button ghost" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 8a8 8 0 1 0 0 8M20 3v5h-5"/></svg><span class="button-label">Atualizar</span></button></div>
+  <div class="inbox-layout">
+    <aside class="thread-sidebar" aria-label="Lista de conversas">
+      <div class="inbox-monitor"><p id="inbox-source" class="list-status">Conversas por verificar.</p><p id="inbox-refresh-state" class="list-status" role="status">Atualização ainda não iniciada.</p><label class="inbox-refresh-toggle"><input id="inbox-auto-refresh" type="checkbox" checked aria-describedby="inbox-refresh-help"><span>Atualizar automaticamente</span></label><p id="inbox-refresh-help" class="sr-only">A cada 15 segundos enquanto esta tela estiver visível. Seu rascunho é preservado.</p></div>
+      <label class="thread-search"><span class="sr-only">Buscar conversa</span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="m15 15 5 5"/></svg><input id="inbox-search" type="search" placeholder="Buscar conversa" autocomplete="off"></label>
+      <div id="thread-list" class="thread-list"></div>
+    </aside>
+    <div id="thread-empty" class="thread-empty"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v12H9l-5 4zM8 8h8M8 12h5"/></svg><h2>Uma conversa de cada vez.</h2><p>Selecione uma pessoa para ver o histórico e os controles de atendimento.</p></div>
+    <article id="thread-detail" class="thread-detail" hidden aria-labelledby="thread-name">
+      <button id="back-to-threads" class="button ghost back-button thread-back" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg>Conversas</button>
+      <header class="thread-header"><div class="thread-person"><span id="thread-avatar" class="comment-avatar" aria-hidden="true"></span><div class="thread-person-text"><h2 id="thread-name" tabindex="-1"></h2><p class="thread-meta"><span id="thread-channel"></span> <span id="thread-last-inbound"></span></p></div></div><span id="thread-window" class="status" data-kind="neutral"></span></header>
+      <div class="thread-controls"><div class="thread-state"><span id="thread-ai-state" class="status" data-kind="neutral">IA pausada</span><p id="thread-control-note" class="list-status"></p></div><div class="thread-control-actions"><button id="thread-handoff" class="button" type="button" aria-describedby="thread-control-note">Assumir conversa</button><button id="thread-assistant" class="button" type="button" disabled aria-describedby="thread-control-note">Retomar bot</button></div></div>
+      <p id="thread-review-state" class="notice warning thread-review-state" role="status" hidden></p>
+      <div id="thread-messages" class="thread-messages" role="log" aria-label="Histórico da conversa" aria-live="polite" aria-relevant="additions"></div>
+      <form id="inbox-composer" class="inbox-composer"><label id="inbox-reply-label" for="inbox-reply" class="composer-label">Sua resposta</label><textarea id="inbox-reply" rows="3" maxlength="1000" placeholder="Escreva uma resposta…" disabled aria-describedby="composer-gate inbox-draft-state inbox-feedback"></textarea><p id="composer-gate" class="hint">Selecione uma conversa.</p><p id="inbox-draft-state" class="list-status">Rascunhos ficam somente nesta sessão do painel.</p><p id="inbox-feedback" class="feedback" role="status" hidden></p><button id="send-inbox-reply" class="button wide" disabled>Enviar resposta</button></form>
+    </article>
+  </div>
+  <details class="disclosure inbox-about"><summary><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>Como as conversas chegam aqui</summary><p>Novas DMs entram pelo webhook do Instagram depois que a conexão está concluída. O histórico anterior do Direct não é importado.</p><p>Uma interação recebida abre a janela de resposta de 24 horas. O aceite da Meta não confirma recebimento nem leitura.</p></details>
+</section>
+
+<section id="catalog-view" hidden aria-labelledby="catalog-title" class="flow-surface">
+<div id="catalog-home" class="screen">
+  <div class="page-heading"><div class="page-heading-text"><h1 id="catalog-title">Seus produtos</h1><p class="page-description">Os fatos e links que a IA pode usar.</p></div><button id="refresh-catalog" class="button ghost" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 8a8 8 0 1 0 0 8M20 3v5h-5"/></svg><span class="button-label">Atualizar</span></button></div>
+  <p id="catalog-save-state" class="list-status" role="status">Carregando produtos…</p><div id="catalog-products" class="choice-list"></div>
+  <div class="flow-actions"><button id="add-product" class="button primary wide" type="button">Adicionar produto</button></div>
+</div>
+<form id="catalog-form" class="screen" hidden novalidate>
+  <div class="wizard-header"><button id="cancel-product" class="button ghost wizard-exit" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>Sair<span class="sr-only"> e guardar rascunho</span></button><progress id="product-progress" max="3" value="1" aria-label="Progresso do produto"></progress><p id="product-step-label" class="wizard-count" role="status"></p></div>
+  <p id="product-editor-title" class="wizard-flow">Novo produto</p>
+  <div id="product-step-0" class="wizard-step"><h1>Qual é o produto?</h1><label class="field"><span>Nome</span><input id="product-name" required maxlength="160"></label><label class="field"><span>Link oficial</span><input id="product-url" type="url" required maxlength="2000" placeholder="https://"></label></div>
+  <div id="product-step-1" class="wizard-step" hidden><h1>O que podemos contar?</h1><label class="field"><span>Descrição</span><textarea id="product-description" rows="3" maxlength="2000"></textarea></label><label class="field"><span>Preço e condições — opcional</span><input id="product-price" maxlength="120" placeholder="Informe apenas o que estiver confirmado"></label><label class="field"><span>Outros fatos — um por linha</span><textarea id="product-facts" rows="3" maxlength="6000"></textarea></label></div>
+  <div id="product-step-2" class="wizard-step" hidden><h1>Revise as informações</h1><dl id="product-review" class="review-card"></dl><p class="hint">A IA usa os produtos salvos da conta selecionada. Deixe em branco o que não estiver confirmado.</p></div>
+  <div class="flow-actions"><div id="product-removal" class="notice warning" hidden><p>Este produto deixará de ser usado pela IA após salvar a remoção.</p><button id="cancel-product-removal" class="button ghost" type="button">Manter produto</button></div><button id="product-next" class="button primary wide" type="button">Continuar</button><button id="save-catalog" class="button primary wide" type="submit" hidden disabled>Salvar produto</button><button id="product-back" class="button ghost wide" type="button" hidden>Voltar</button><button id="remove-product" class="button ghost danger wide" type="button" hidden>Remover este produto</button></div>
+</form><p id="catalog-feedback" class="feedback" role="status" hidden></p></section>
+
+<section id="settings-view" hidden class="flow-surface screen" aria-labelledby="settings-title">
+  <div class="page-heading"><div class="page-heading-text"><h1 id="settings-title">Ajustes</h1><p class="page-description">Conexões e ferramentas, em um só lugar.</p></div></div>
+  <div class="choice-list">
+    <button id="settings-accounts" class="choice" type="button" aria-haspopup="dialog"><span class="choice-text"><strong>Contas do Instagram</strong><span class="choice-meta">Adicionar, verificar ou renovar uma conexão.</span></span><svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button>
+    <a class="choice" href="#provider"><span class="choice-text"><strong>Provedor de IA</strong><span class="choice-meta">Configurar a chave privada do OpenRouter.</span></span><svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></a>
+  </div>
+  <details id="legacy-tools" class="disclosure tools"><summary><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>Histórico e ferramentas antigas</summary>
+    <div id="legacy-comment-card" class="choice-list">
+      <a id="nav-recovery" class="choice" href="#recovery"><span class="choice-text"><strong>Recuperação de comentários</strong><span id="comment-card-gate" class="choice-meta">Exige acesso e proteção dos atendimentos anteriores.</span><span id="comment-card-state" class="status" data-kind="neutral">Por verificar</span></span><span id="nav-count" class="nav-count" hidden>0</span><svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></a>
+      <a class="choice" href="#simulator"><span class="choice-text"><strong>Simulador Manychat</strong><span class="choice-meta">Fluxo histórico em duas etapas. Nenhum envio real.</span></span><svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></a>
+    </div>
+  </details>
+  <div class="settings-footer">
+    <a class="button ghost" href="/privacy" target="_blank" rel="noopener">Privacidade<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M10 4H4v16h16v-6"/></svg><span class="sr-only"> (abre em nova aba)</span></a>
+    <button id="logout-admin" class="button ghost danger" type="button" aria-describedby="logout-feedback"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4H5v16h4M14 8l4 4-4 4M18 12H9"/></svg><span class="button-label">Sair do Benion</span></button>
+    <p id="logout-feedback" class="feedback" role="status" hidden></p>
+  </div>
+</section>
+
+<section id="provider-view" class="flow-surface assistant-provider" hidden aria-labelledby="provider-title">
+  <a class="button ghost back-button" href="#settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg>Ajustes</a>
+  <h1 id="provider-title">Conectar a IA</h1>
+  <p id="provider-status" class="hint" role="status">Integração por verificar.</p>
+  <button id="provider-retry" class="button ghost" type="button" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 8a8 8 0 1 0 0 8M20 3v5h-5"/></svg>Verificar de novo</button>
+  <p id="provider-help" class="page-description">Uma chave privada compartilhada pelas suas contas. Salvar testa o modelo e não envia DMs.</p>
+  <details class="disclosure"><summary><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>Como a chave é usada</summary><p>Conversas, catálogo e instruções continuam separados por conta. Salvar testa o modelo com uma mensagem sintética, sem dados de leads. Isso não ativa o atendimento nem envia DMs.</p><p>A chave fica guardada somente no servidor privado e nunca é exibida após salvar.</p></details>
+  <form id="provider-form" class="screen" autocomplete="off">
+    <label class="field"><span>Chave de API do OpenRouter</span><input id="provider-api-key" type="password" autocomplete="off" spellcheck="false" autocapitalize="none" minlength="16" maxlength="1000" required aria-describedby="provider-help provider-feedback"></label>
+    <div class="flow-actions"><p id="provider-feedback" class="feedback" role="status" hidden></p><button id="save-provider" class="button primary wide" type="submit">Salvar e testar modelo</button></div>
+  </form>
+</section>
+
+<section id="assistant-view" hidden class="flow-surface" aria-labelledby="assistant-flow-title">
+  <form id="assistant-config-form" class="assistant-config screen" novalidate>
+    <div class="wizard-header"><a class="button ghost wizard-exit" href="#automation"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>Sair<span class="sr-only"> do assistente</span></a><progress id="assistant-progress" max="3" value="1" aria-label="Progresso do assistente"></progress><p id="assistant-step-label" class="wizard-count" role="status">Passo 1 de 3</p></div>
+    <p id="assistant-flow-title" class="wizard-flow">Assistente de conversas</p>
+    <div id="assistant-step-0" class="wizard-step"><h1>Como ele pode ajudar?</h1><div class="option-group">
+      <label class="option"><input data-assistant-feature="storyEnabled" type="checkbox" disabled><span class="option-text"><strong>Respostas a Stories</strong><span>Responda a interações recebidas em Stories dentro da janela permitida.</span><span data-feature-status="story" class="status" data-kind="neutral">Por verificar</span><span data-feature-gate="story" class="feature-gate">Aguardando elegibilidade da API.</span></span></label>
+      <label class="option"><input data-assistant-feature="faqEnabled" type="checkbox" disabled><span class="option-text"><strong>Perguntas frequentes</strong><span>Respostas sobre seus produtos usando apenas os fatos do catálogo.</span><span data-feature-status="faq" class="status" data-kind="neutral">Por verificar</span><span data-feature-gate="faq" class="feature-gate">Catálogo, provedor de IA e acesso precisam estar prontos.</span></span></label>
+      <label class="option"><input data-assistant-feature="salesEnabled" type="checkbox" disabled><span class="option-text"><strong>Vendas pelo Direct</strong><span>Ajude a escolher um produto e compartilhe o link certo, sem inventar condições.</span><span data-feature-status="sales" class="status" data-kind="neutral">Por verificar</span><span data-feature-gate="sales" class="feature-gate">Aguardando configuração e janela de resposta.</span></span></label>
+      <label class="option"><input data-assistant-feature="followerEnabled" type="checkbox" disabled><span class="option-text"><strong>Novos seguidores</strong><span>Boas-vindas automáticas dependem de elegibilidade oficial específica.</span><span data-feature-status="follower" class="status" data-kind="neutral">Indisponível</span><span data-feature-gate="follower" class="feature-gate">Seguir a conta, por si só, não autoriza uma DM neste app.</span></span></label>
+    </div></div>
+    <div id="assistant-step-1" class="wizard-step" hidden><h1>Como ele deve conversar?</h1>
+      <fieldset id="assistant-tone" class="field option-group"><legend>Tom de voz</legend>
+        <label class="option"><input type="radio" name="assistantTone" value="friendly" checked><span class="option-text"><strong>Próximo e objetivo</strong></span></label>
+        <label class="option"><input type="radio" name="assistantTone" value="concise"><span class="option-text"><strong>Curto e direto</strong></span></label>
+        <label class="option"><input type="radio" name="assistantTone" value="professional"><span class="option-text"><strong>Profissional</strong></span></label>
+      </fieldset>
+      <label class="field"><span>Orientações adicionais</span><textarea id="assistant-rules" rows="3" maxlength="1500" placeholder="Ex.: quando a pessoa pedir ajuda especializada, encaminhar para mim."></textarea></label>
+      <p class="hint">O catálogo e os limites da API continuam obrigatórios. O atendimento humano pausa a IA nessa conversa.</p>
+      <a class="button ghost" href="#catalog">Ver os produtos desta conta<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></a>
+    </div>
+    <div id="assistant-step-2" class="wizard-step" hidden><h1>Revise antes de ativar</h1><dl id="assistant-review" class="review-card"></dl>
+      <label class="option"><input id="assistant-enabled" type="checkbox" disabled><span class="option-text"><strong>Habilitar assistente nesta conta</strong><span id="assistant-provider-state">Configuração do assistente por verificar.</span></span></label>
+      <a id="assistant-provider-link" class="button ghost" href="#provider" hidden>Configurar provedor de IA<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></a>
+    </div>
+    <div class="flow-actions"><p id="assistant-save-state" class="list-status" role="status">Carregando configurações…</p><button id="assistant-retry" class="button ghost" type="button" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 8a8 8 0 1 0 0 8M20 3v5h-5"/></svg>Tentar carregar de novo</button><p id="assistant-feedback" class="feedback" role="status" hidden></p><button id="assistant-next" class="button primary wide" type="button">Continuar</button><button id="save-assistant-config" class="button primary wide" type="submit" hidden disabled>Salvar preferências</button><button id="assistant-back" class="button ghost wide" type="button" hidden>Voltar</button></div>
+  </form>
+</section>
+
+<section id="preview-view" hidden class="flow-surface assistant-preview" aria-labelledby="preview-title">
+  <a class="button ghost back-button" href="#assistant"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg>Assistente</a>
+  <h1 id="preview-title">Teste uma resposta</h1>
+  <p class="page-description">Use o catálogo salvo para testar perguntas, vendas e limites de resposta. O teste não altera a Inbox.</p>
+  <p class="status" data-kind="info">Simulação · nenhuma DM é enviada</p>
+  <div id="assistant-preview-log" class="assistant-preview-log" aria-live="polite"></div>
+  <form id="assistant-preview-form" class="screen">
+    <div class="field"><label for="assistant-preview-kind">Tipo de interação</label><span class="select-wrap"><select id="assistant-preview-kind"><option value="message">Mensagem no Direct</option><option value="story_reply">Resposta a Story</option><option value="story_mention">Menção em Story</option></select><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span></div>
+    <div class="field"><label for="assistant-preview-text">Mensagem de teste</label><textarea id="assistant-preview-text" rows="2" maxlength="1000" required placeholder="Quanto custa o produto?"></textarea></div>
+    <div class="flow-actions"><p id="assistant-preview-feedback" class="feedback" role="status" hidden></p><button id="send-assistant-preview" class="button primary wide" type="submit">Testar resposta</button><button id="clear-assistant-preview" class="button ghost wide" type="button">Limpar teste</button></div>
+  </form>
+</section>
+
+<section id="recovery-view" hidden aria-labelledby="recovery-title">
+  <a class="button ghost back-button" href="#settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg>Ajustes</a>
+  <div class="page-heading"><div class="page-heading-text"><h1 id="recovery-title">Recuperação antiga</h1><p class="page-description">Revise quem comentou e retome cada conversa.</p></div><button id="refresh-recovery" class="button ghost" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 8a8 8 0 1 0 0 8M20 3v5h-5"/></svg><span class="button-label">Atualizar lista</span></button></div>
+  <div class="recovery-layout">
+    <div class="recovery-main">
+      <div class="notice warning"><p><strong>O Manychat atingiu o limite de contatos</strong></p><p>1.314 de 1.000 contatos na verificação. A recuperação abaixo registra o atendimento manual.</p></div>
+      <dl class="queue-overview"><div class="queue-main"><dt>para revisar</dt><dd id="pending-count">—</dd></div><div class="queue-secondary"><dt>DMs registradas</dt><dd id="sent-count">—</dd></div><div class="queue-secondary"><dt>já receberam</dt><dd id="received-count">—</dd></div></dl>
+      <div class="queue-toolbar"><div><h2>Comentários do reel</h2><p id="source-updated" class="list-status">Carregando registros…</p></div><label class="filter-label"><span class="sr-only">Filtrar por status</span><span class="select-wrap"><select id="status-filter"><option value="all">Todos os status</option><option value="needs_review">Para revisar</option><option value="sent">DM registrada</option><option value="already_received">Já recebeu</option><option value="blocked">Bloqueado</option></select><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span></label></div>
+      <div id="recovery-list" class="recovery-list"></div>
+      <p class="hint">“Controle local” é uma marcação neste navegador. O registro de um envio real depende da confirmação no Instagram.</p>
+    </div>
+    <aside class="recovery-context" aria-label="Contexto da recuperação"><details class="disclosure"><summary><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>Mensagem e controles históricos deste Reel</summary>
+      <div class="reel-reference"><div class="reel-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 3h16v18H4zM4 8h16M7 3l3 5m3-5 3 5m-6 4 5 3-5 3z"/></svg></div><div><span class="list-status">Publicação selecionada</span><h3>Atendimentos anteriores</h3><a id="legacy-reel-link" class="button ghost" hidden target="_blank" rel="noopener noreferrer">Abrir reel<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M10 4H4v16h16v-6"/></svg></a></div></div>
+      <div class="real-automation"><div class="real-automation-title"><h3>Somente DM automática</h3><span id="real-state" class="status" data-kind="neutral">Inativo</span></div><p>Este controle envia os dois links na primeira DM para novos comentários deste reel. Ele não publica resposta nem curte o comentário.</p><p>Para DM com resposta pública, <a href="#automation">configure uma automação em Automações</a>. A curtida continua manual no Instagram.</p><details class="disclosure real-preview"><summary><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>Prévia da primeira DM</summary><label for="real-message" class="sr-only">Texto da primeira DM</label><textarea id="real-message" rows="7" maxlength="1000"></textarea><span id="real-message-size" class="list-status"></span></details><p id="real-gate" class="hint">Verifique os acessos da API e a proteção dos comentários anteriores antes de ativar.</p><p id="real-feedback" class="feedback" role="status" hidden></p><button id="start-automation" class="button primary wide" disabled>Ativar somente DM</button><button id="stop-automation" class="button wide" hidden>Parar envio de DMs</button><dl class="real-counts"><div><dt>Aceitos pela API</dt><dd id="real-accepted">0</dd></div><div><dt>Indeterminados</dt><dd id="real-unknown">0</dd></div></dl><p id="real-last-check" class="list-status">Nenhuma checagem automática.</p><details id="real-records-panel" class="disclosure" hidden><summary><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>Registros do provedor</summary><div id="real-records"></div></details><p id="real-runtime-note" class="hint">Funciona neste computador enquanto o Node estiver rodando e o computador estiver ligado. Reiniciar desliga o envio. O aceite da API não confirma recebimento nem leitura.</p></div>
+      <div class="recovery-message"><h3>Mensagem de recuperação</h3><p class="page-description">Copie, confira a conversa e envie pelo Instagram.</p><label for="recovery-text" class="sr-only">Texto da mensagem de recuperação</label><textarea id="recovery-text" rows="8"></textarea><button id="copy-recovery" class="button wide"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 8h12v12H8zM16 8V4H4v12h4"/></svg>Copiar mensagem</button><span id="recovery-save-state" class="list-status">Salvo neste navegador</span></div>
+      <div class="manual-guide"><h3>Uma conversa por vez</h3><ol><li>Abra o perfil e verifique o Direct.</li><li>Confirme se a pessoa já recebeu o link.</li><li>Envie a mensagem e registre o resultado.</li></ol><p>A recuperação manual e o envio real usam os dois links na primeira DM. O simulador reproduz o Manychat em duas etapas, com interação antes da segunda DM.</p></div>
+    </details></aside>
+  </div>
+</section>
+
+<section id="simulator-view" hidden aria-labelledby="simulator-view-title">
+  <a class="button ghost back-button" href="#settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg>Ajustes</a><h1 id="simulator-view-title">Simulador antigo</h1>
+  <div id="manychat-simulator" class="simulator-details"><p class="status" data-kind="info">Ferramenta histórica · nenhum envio real</p><div class="tool-tabs" role="group" aria-label="Modo do simulador"><button id="legacy-edit-tab" class="button" type="button" aria-pressed="true">Editar fluxo</button><button id="legacy-test-tab" class="button" type="button" aria-pressed="false">Testar conversa</button></div><p class="page-description simulator-intro">Reproduz o fluxo original com interação antes da segunda DM. O envio real usa os dois links na primeira mensagem.</p>
+  <div class="automation-layout">
+    <div id="legacy-editor-panel" class="editor-column">
+      <form id="flow-form" class="flow-editor" novalidate><div class="wizard-header"><progress id="legacy-progress" max="3" value="1" aria-label="Progresso do fluxo antigo"></progress><p id="legacy-step-label" class="wizard-count" role="status">Passo 1 de 3</p></div><div id="legacy-step-0"><div class="flow-step"><div class="step-marker" aria-hidden="true">1</div><div class="step-content"><h3>Alguém comenta</h3><p class="list-status">Em uma publicação específica.</p><label class="field"><span>Link da publicação</span><input name="reel" id="flow-reel" type="url" required></label><fieldset class="field option-group trigger-options"><legend>Qual comentário inicia o fluxo?</legend><label class="option"><input name="trigger" type="radio" value="any" checked><span class="option-text"><strong>Qualquer comentário</strong></span></label><label class="option"><input name="trigger" type="radio" value="keyword"><span class="option-text"><strong>Com uma palavra-chave</strong></span></label></fieldset><label id="keyword-field" class="field" hidden><span>Palavras-chave, separadas por vírgula</span><input name="keywords" id="flow-keywords"></label><details class="disclosure public-details"><summary><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>Respostas públicas · 3 variações</summary><div class="public-fields"><label class="field"><span>Variação 1</span><input name="reply0" required></label><label class="field"><span>Variação 2</span><input name="reply1" required></label><label class="field"><span>Variação 3</span><input name="reply2" required></label></div></details></div></div>
+        </div><div id="legacy-step-1" hidden><div class="flow-step"><div class="step-marker" aria-hidden="true">2</div><div class="step-content"><h3>Recebe a primeira DM</h3><p class="list-status">Uma resposta privada, até 7 dias após o comentário.</p><label class="field"><span>Mensagem de abertura</span><textarea name="firstMessage" id="flow-first" rows="5" required maxlength="1000"></textarea></label><label class="field"><span>Botão para continuar</span><input name="optInLabel" id="flow-optin" required maxlength="80"></label><p class="notice warning">A segunda DM aguarda uma interação da pessoa.</p></div></div>
+        </div><div id="legacy-step-2" hidden>
+        <div class="editor-top"><div><h2>Fluxo do simulador</h2><p class="list-status">As alterações ficam neste navegador.</p></div><label class="toggle-label"><input id="flow-enabled" name="enabled" type="checkbox" checked><span id="enabled-label">Ativa no simulador</span></label></div>
+        <label class="field"><span>Nome</span><input name="name" id="flow-name" required maxlength="120"></label>
+        <div class="flow-step last"><div class="step-marker" aria-hidden="true">3</div><div class="step-content"><h3>Recebe o link</h3><p class="list-status">Depois da interação, dentro da janela de 24 horas.</p><label class="field"><span>Segunda mensagem</span><textarea name="secondMessage" id="flow-second" rows="2" required maxlength="1000"></textarea></label><div class="two-fields"><label class="field"><span>Texto do botão</span><input name="linkLabel" id="flow-linklabel" required maxlength="80"></label><label class="field"><span>Link de destino</span><input name="linkUrl" id="flow-link" type="url" required></label></div></div></div>
+        <div class="flow-footer"><ul class="disabled-features"><li>Follow-up desligado</li><li>Sem pedido de e-mail ou de seguir</li></ul><div id="flow-errors" class="notice error form-errors" role="alert" hidden></div><div class="save-row"><span id="flow-save-state" class="list-status">Nenhuma alteração pendente</span><button class="button primary wide" type="submit">Salvar fluxo</button></div></div>
+      </div><div class="flow-actions"><button id="legacy-next" class="button primary wide" type="button">Continuar</button><button id="legacy-back" class="button ghost wide" type="button" hidden>Voltar</button></div></form>
+    </div>
+    <aside id="legacy-simulator-panel" class="simulator" hidden aria-labelledby="simulator-title">
+      <div class="simulator-top"><div><h2 id="simulator-title">Teste a conversa</h2><p class="list-status">Tudo aqui é simulado.</p></div><button id="reset-simulation" class="icon-button" type="button" title="Reiniciar simulação" aria-label="Reiniciar simulação"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 8a8 8 0 1 0 0 8M20 3v5h-5"/></svg></button></div>
+      <div class="chat-header"><span class="comment-avatar" aria-hidden="true">A</span><div><strong>Ana · pessoa de teste</strong><span class="list-status">Instagram Direct simulado</span></div></div>
+      <div id="simulation-log" class="chat-log" aria-live="polite"></div>
+      <div id="window-status" class="window-status"></div>
+      <div class="simulation-controls"><label class="field"><span>Comentário de teste</span><input id="test-comment" value="quero o link!" maxlength="500"></label><div class="comment-control"><label class="field age-control"><span>Comentou</span><span class="select-wrap"><select id="comment-age"><option value="0">agora</option><option value="24">há 1 dia</option><option value="192">há 8 dias</option></select><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span></label><button id="simulate-comment" class="button primary wide" type="button">Simular comentário</button></div><button id="simulate-optin" class="button wide" type="button">Clicar em “Quero testar de graça”</button><details class="disclosure advanced-tests"><summary><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>Testar limites</summary><div class="advanced-test-actions"><button id="simulate-second" class="button wide" type="button">Tentar segunda DM</button><button id="simulate-interaction" class="button wide" type="button">Simular resposta da pessoa</button><div class="clock-controls" role="group" aria-label="Avançar relógio"><span class="field-label">Avançar relógio</span><button data-advance="1" class="button" type="button">+1h</button><button data-advance="24" class="button" type="button">+24h</button><button data-advance="168" class="button" type="button">+7 dias</button></div><button id="simulate-human" class="button wide" type="button">Assumir atendimento</button></div></details></div>
+      <p class="hint">A simulação usa o fluxo salvo. Nenhuma DM é enviada ao Instagram.</p>
+    </aside>
+  </div>
+  </div>
+</section></main></div><div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+<dialog id="connection-dialog" aria-labelledby="connection-title">
+  <div class="connection-dialog-top"><h2 id="connection-title">Conexão do Instagram</h2><button id="close-connection" class="icon-button" type="button" aria-label="Fechar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
+  <p><strong id="connection-summary">Conecte uma conta profissional do Instagram.</strong></p>
+  <p id="connection-account-note" class="list-status">A conexão e a verificação abaixo pertencem à conta selecionada no painel.</p>
+  <div id="connection-tasks" class="choice-list">
+    <button id="choose-add-account" class="choice" type="button"><span class="choice-text"><strong>Adicionar uma conta</strong><span class="choice-meta">Conecte um perfil profissional.</span></span><svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button>
+    <button id="choose-verify-account" class="choice" type="button"><span class="choice-text"><strong>Verificar esta conta</strong><span class="choice-meta">Confira os acessos salvos.</span></span><svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button>
+    <button id="choose-renew-account" class="choice" type="button"><span class="choice-text"><strong>Renovar a conexão</strong><span class="choice-meta">Substitua o token desta conta.</span></span><svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button>
+  </div>
+  <button id="connection-task-back" class="button ghost back-button" type="button" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg>Escolher outra tarefa</button>
+  <div id="connection-meta-links" class="connection-dialog-links" hidden><a class="button ghost" href="https://developers.facebook.com/apps/" target="_blank" rel="noopener noreferrer">Abrir meus apps na Meta<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M10 4H4v16h16v-6"/></svg></a><a class="button ghost" href="https://developers.facebook.com/documentation/instagram-platform/overview" target="_blank" rel="noopener noreferrer">Ver documentação<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M10 4H4v16h16v-6"/></svg></a></div>
+  <form id="new-account-form" class="new-account-form" hidden autocomplete="off"><h3>Conectar conta</h3><p id="new-account-help" class="page-description">Use o token oficial autorizado para esta conta. O Benion confirma o perfil na Meta e guarda a conexão no servidor privado. A nova automação começa pausada.</p><label class="field"><span>Usuário do Instagram</span><input id="new-account-username" required pattern="@?[A-Za-z0-9_.]{1,30}" maxlength="31" placeholder="seu.usuario" autocomplete="off" autocapitalize="none" spellcheck="false" aria-describedby="new-account-help new-account-feedback"></label><label class="field"><span>Token de acesso da nova conta</span><input id="new-account-token" type="password" required minlength="16" maxlength="8192" autocomplete="off" autocapitalize="none" spellcheck="false" aria-describedby="new-account-help new-account-feedback"></label><details class="disclosure advanced"><summary><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>Detalhes técnicos</summary><label class="field"><span>Versão da API</span><input id="new-account-version" value="v26.0" pattern="v[0-9]{1,3}\.0" required aria-describedby="new-account-feedback"></label></details><p id="new-account-feedback" class="feedback" role="status" hidden></p><button id="add-account" type="submit" class="button primary wide">Validar e adicionar conta</button></form>
+  <div id="access-check-panel" class="access-check" hidden><h3>Acessos da conta selecionada</h3><p id="access-check-note" class="page-description">Verifique a conexão salva e uma amostra de conversa. A recuperação pertence à conta selecionada e usa seu histórico privado.</p><p id="connection-details" class="hint">A identidade ainda não foi verificada nesta sessão do servidor. Use Verificar acessos para revalidar o token salvo. Validar a identidade não ativa a automação nem envia DMs.</p><div id="access-results" class="access-results" hidden></div><p class="hint access-note">A verificação lê dados e registra a proteção local. Não envia DMs nem ativa a automação.</p><p id="access-feedback" class="feedback" role="status" hidden></p><button id="verify-access" class="button primary wide" type="button">Verificar acessos</button></div>
+  <section id="renew-account-panel" class="token-connection" hidden aria-labelledby="renew-account-title"><h3 id="renew-account-title">Renovar conexão</h3><form id="connection-form" autocomplete="off"><p id="replace-token-note" class="page-description">O token deve pertencer à conta selecionada. O servidor confirma a identidade antes de substituir a conexão. Nenhuma DM é enviada.</p><label class="field"><span>Token de acesso do Instagram</span><input id="connection-token" type="password" autocomplete="off" spellcheck="false" autocapitalize="none" minlength="16" maxlength="8192" required aria-describedby="replace-token-note connection-feedback"></label><details class="disclosure advanced"><summary><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>Detalhes técnicos</summary><label class="field"><span>Versão da API</span><input id="connection-version" value="v26.0" pattern="v[0-9]{1,3}\.0" autocomplete="off" required></label></details><p id="connection-feedback" class="feedback" role="status" hidden></p><button id="validate-connection" class="button primary wide" type="submit">Validar conexão</button></form></section>
+</dialog>
+</body></html>

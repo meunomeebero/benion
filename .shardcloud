@@ -1,0 +1,7 @@
+DISPLAY_NAME=Benion
+DESCRIPTION=Self-hosted Instagram automation for your own accounts
+MAIN=server.mjs
+LANGUAGE=node
+MEMORY=512
+VERSION=recommended
+CUSTOM_COMMAND=node server.mjs

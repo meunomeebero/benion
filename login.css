@@ -1,0 +1,15 @@
+@import url('/tokens.css');
+body { min-height: 100vh; min-height: 100svh; display: grid; align-items: center; padding: var(--space-6); }
+main { width: 100%; max-width: var(--layout-flow); margin: auto; padding: var(--space-8); border: var(--border) solid var(--color-border); border-radius: var(--radius-6); background: var(--color-surface); }
+.brand { display: inline-flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-8); color: var(--color-text); font-size: var(--text-title); font-weight: var(--weight-title); line-height: var(--leading-title); }
+h1 { margin-bottom: var(--space-4); }
+.lead { color: var(--color-muted); text-wrap: pretty; }
+form { margin-top: var(--space-8); display: grid; gap: var(--space-3); }
+label { font-weight: var(--weight-strong); }
+button { width: 100%; margin-top: var(--space-6); }
+footer { margin-top: var(--space-6); }
+footer a { display: inline-flex; align-items: center; min-height: var(--target-min); }
+@media (max-width: 30rem) {
+  body { align-items: start; padding: var(--space-6) var(--space-4); }
+  main { padding: 0; border: 0; background: none; }
+}

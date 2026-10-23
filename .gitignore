@@ -1,0 +1,17 @@
+.env
+.env.*
+!.env.example
+.benion-private/
+owner.json
+legacy-recovery.json
+data/
+evidence/
+research_notes/
+reports/
+campaign-plans/
+node_modules/
+dist/
+*.zip
+*.tgz
+*.log
+.DS_Store
