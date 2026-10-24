@@ -2,11 +2,15 @@ import { randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import { constants } from 'node:fs';
 import { chmod, lstat, mkdir, open, realpath, rename, unlink } from 'node:fs/promises';
 import path from 'node:path';
-import { GraphClient, SendLedger } from './integrations/meta.mjs';
+import { GraphClient, SendLedger, refreshInstagramToken } from './integrations/meta.mjs';
 import { parseLegacyRecovery, validLegacy } from './owner-config.mjs';
 
 const MAX_BODY = 12 * 1024;
+const MAX_CONNECTION_FILE = 24 * 1024;
 const NONCE_TTL = 5 * 60 * 1000;
+const DAY = 24 * 60 * 60 * 1000;
+const REFRESH_STATES = new Set(['waiting', 'scheduled', 'retrying', 'reauthorization_required']);
+const REFRESH_CODES = new Set(['TOKEN_EXPIRED', 'TOKEN_REJECTED', 'REFRESH_REJECTED', 'IDENTITY_UNVERIFIED', 'WRONG_ACCOUNT', 'NETWORK_ERROR', 'NETWORK_TIMEOUT', 'TOKEN_RESPONSE_INVALID']);
 const errors = {
   ACCESS_DENIED: [403, 'A conexão só pode ser configurada nesta página local.'],
   CSRF_INVALID: [403, 'Esta tentativa expirou. Reabra a conexão e tente novamente.'],
@@ -36,6 +40,19 @@ function isWithin(directory, root) {
 }
 function safeEqual(a, b) {
   return typeof a === 'string' && typeof b === 'string' && Buffer.byteLength(a) === Buffer.byteLength(b) && timingSafeEqual(Buffer.from(a), Buffer.from(b));
+}
+function initialRefresh(now) {
+  return { state: 'waiting', firstSeenAt: now, expiresAt: null, nextAttemptAt: now + DAY, lastAttemptAt: null, lastSuccessAt: null, code: null };
+}
+function validRefresh(value) {
+  return value && REFRESH_STATES.has(value.state) && Number.isSafeInteger(value.firstSeenAt) && value.firstSeenAt >= 0 && value.firstSeenAt <= 8.64e15 &&
+    ['expiresAt', 'nextAttemptAt', 'lastAttemptAt', 'lastSuccessAt'].every(key => value[key] === null || Number.isSafeInteger(value[key]) && value[key] >= 0 && value[key] <= 8.64e15) &&
+    (value.code === null || REFRESH_CODES.has(value.code));
+}
+function publicRefresh(value) {
+  const date = key => value[key] === null ? null : new Date(value[key]).toISOString();
+  return { state: value.state, expiresAt: date('expiresAt'), nextAttemptAt: date('nextAttemptAt'), lastAttemptAt: date('lastAttemptAt'), lastSuccessAt: date('lastSuccessAt'), code: value.code,
+    action: value.state === 'reauthorization_required' ? 'reconnect' : value.state === 'retrying' ? 'automatic_retry' : 'none' };
 }
 
 // Import/constructor perform no I/O. Credentials are read by protected connection
@@ -120,12 +137,16 @@ export class ConnectionService {
       if (isWithin(await realpath(this.#privateDirectory), await realpath(this.#servedRoot))) throw new Error();
       const filename = path.join(this.#privateDirectory, 'connection.json');
       const file = await lstat(filename);
-      if (!file.isFile() || file.isSymbolicLink() || file.size > MAX_BODY || (file.mode & 0o777) !== 0o600) throw new Error();
+      if (!file.isFile() || file.isSymbolicLink() || file.size > MAX_CONNECTION_FILE || (file.mode & 0o777) !== 0o600) throw new Error();
       handle = await open(filename, constants.O_RDONLY | constants.O_NOFOLLOW);
       const actual = await handle.stat();
-      if (!actual.isFile() || actual.size > MAX_BODY || (actual.mode & 0o777) !== 0o600) throw new Error();
+      if (!actual.isFile() || actual.size > MAX_CONNECTION_FILE || (actual.mode & 0o777) !== 0o600) throw new Error();
       const record = JSON.parse(await handle.readFile('utf8'));
       if (record.schemaVersion !== 1 || typeof record.accessToken !== 'string' || !/^[\x21-\x7e]{16,8192}$/.test(record.accessToken) || typeof record.apiVersion !== 'string' || !/^v\d{1,3}\.0$/.test(record.apiVersion) || record.identity?.username?.toLowerCase() !== this.#expectedUsername || record.identity?.userId !== this.#expectedUserId) throw new Error();
+      if (record.tokenRefresh !== undefined && !validRefresh(record.tokenRefresh)) throw new Error();
+      if (record.pendingRefresh !== undefined && (typeof record.pendingRefresh?.accessToken !== 'string' || !/^[\x21-\x7e]{16,8192}$/.test(record.pendingRefresh.accessToken) ||
+          !Number.isSafeInteger(record.pendingRefresh.issuedAt) || record.pendingRefresh.issuedAt < 0 || !Number.isSafeInteger(record.pendingRefresh.expiresAt) ||
+          record.pendingRefresh.expiresAt <= record.pendingRefresh.issuedAt || record.pendingRefresh.expiresAt > record.pendingRefresh.issuedAt + 60 * DAY)) throw new Error();
       return record;
     } catch (error) {
       throw new ConnectionError(error.code === 'ENOENT' ? 'CONNECTION_REQUIRED' : 'PRIVATE_STORE_INVALID');
@@ -147,15 +168,15 @@ export class ConnectionService {
       saved = await this.#savedConnection();
       let result;
       try { result = await this.#inspect({ accessToken: saved.accessToken, apiVersion: saved.apiVersion }); }
-      catch { this.#status = { connected: false, identity: null, checkedAt: null, permissionsVerified: false }; throw new ConnectionError('TOKEN_VALIDATION_FAILED'); }
+      catch { this.#status = { connected: false, identity: null, checkedAt: null, permissionsVerified: false, ...(saved.tokenRefresh ? { tokenRefresh: publicRefresh(saved.tokenRefresh) } : {}) }; throw new ConnectionError('TOKEN_VALIDATION_FAILED'); }
       if (result?.username?.toLowerCase() !== this.#expectedUsername || result.userId !== this.#expectedUserId) {
-        this.#status = { connected: false, identity: null, checkedAt: null, permissionsVerified: false };
+        this.#status = { connected: false, identity: null, checkedAt: null, permissionsVerified: false, ...(saved.tokenRefresh ? { tokenRefresh: publicRefresh(saved.tokenRefresh) } : {}) };
         throw new ConnectionError('WRONG_ACCOUNT');
       }
       const checkedAt = new Date(this.#clock()).toISOString();
       const identity = { username: result.username, userId: result.userId };
-      await this.#persist({ schemaVersion: 1, accessToken: saved.accessToken, apiVersion: saved.apiVersion, identity, checkedAt, permissionsVerified: result.permissionsVerified === true });
-      this.#status = { connected: true, identity, checkedAt, permissionsVerified: result.permissionsVerified === true };
+      await this.#persist({ ...saved, identity, checkedAt, permissionsVerified: result.permissionsVerified === true });
+      this.#status = { connected: true, identity, checkedAt, permissionsVerified: result.permissionsVerified === true, ...(saved.tokenRefresh ? { tokenRefresh: publicRefresh(saved.tokenRefresh) } : {}) };
       if (!this.#legacy) {
         const ledger = new SendLedger({ directory: path.join(this.#privateDirectory, 'ledger'), clock: this.#clock });
         const client = new GraphClient({ accessToken: saved.accessToken, apiVersion: saved.apiVersion, accountId: identity.userId, ledger, fetchImpl: this.#fetch, clock: this.#clock });
@@ -249,7 +270,7 @@ export class ConnectionService {
       if (identity?.userId !== this.#expectedUserId || identity?.username?.toLowerCase() !== this.#expectedUsername) throw new ConnectionError('WRONG_ACCOUNT');
       await this.#directory(path.join(this.#privateDirectory, 'contact-ledger'));
       const ledger = new SendLedger({ directory: path.join(this.#privateDirectory, 'ledger'), clock: this.#clock });
-      const client = new GraphClient({ accessToken: saved.accessToken, apiVersion: saved.apiVersion, accountId: identity.userId, ledger, fetchImpl: this.#fetch, clock: this.#clock });
+      const client = new GraphClient({ accessToken: saved.accessToken, accessTokenProvider: () => this.#currentAccessToken(), apiVersion: saved.apiVersion, accountId: identity.userId, ledger, fetchImpl: this.#fetch, clock: this.#clock });
       const contactLedger = new engine.CampaignContactLedger({ directory: path.join(this.#privateDirectory, 'contact-ledger') });
       const automation = new engine.LocalCommentAutomation({ client, ledger, contactLedger, accountId: identity.userId, accountUsername: identity.username, mediaId: preflight.mediaId, messageText: body.messageText, publicReplies: [], reconciledComments: preflight.reconciledComments, preflight: { ...preflight, protectedCount: this.#legacy.protectedCount }, clock: this.#clock, requireReconciled: true });
       this.#automation = automation;
@@ -300,11 +321,79 @@ export class ConnectionService {
       const identity = { userId: result.userId, username: result.username };
       const checkedAt = new Date(this.#clock()).toISOString();
       const permissionsVerified = result.permissionsVerified === true;
-      await this.#persist({ schemaVersion: 1, accessToken: body.accessToken, apiVersion: body.apiVersion, identity, checkedAt, permissionsVerified });
-      this.#status = { connected: true, identity, checkedAt, permissionsVerified };
+      const tokenRefresh = initialRefresh(this.#clock());
+      await this.#persist({ schemaVersion: 1, accessToken: body.accessToken, apiVersion: body.apiVersion, identity, checkedAt, permissionsVerified, tokenRefresh });
+      this.#status = { connected: true, identity, checkedAt, permissionsVerified, tokenRefresh: publicRefresh(tokenRefresh) };
       this.#preflight = null;
       return this.status();
     } finally { this.#busy = false; }
+  }
+
+  // Called by the hosted worker. Imported tokens have unknown expiry until Meta confirms a refresh.
+  async refreshIfDue() {
+    if (this.#busy) return { state: 'busy', refreshed: false };
+    this.#busy = true;
+    let saved;
+    let renewed;
+    try {
+      saved = await this.#savedConnection();
+      const now = this.#clock();
+      if (!saved.tokenRefresh) {
+        saved.tokenRefresh = initialRefresh(now);
+        await this.#persist(saved);
+      }
+      let refresh = saved.tokenRefresh;
+      const expose = () => {
+        this.#status.tokenRefresh = publicRefresh(refresh);
+        return { ...this.#status.tokenRefresh, refreshed: false };
+      };
+      if (refresh.state === 'reauthorization_required') return expose();
+      if ((saved.pendingRefresh?.expiresAt ?? refresh.expiresAt) !== null && (saved.pendingRefresh?.expiresAt ?? refresh.expiresAt) <= now) {
+        refresh = { ...refresh, state: 'reauthorization_required', code: 'TOKEN_EXPIRED', nextAttemptAt: null };
+        await this.#persist({ ...saved, tokenRefresh: refresh });
+        return expose();
+      }
+      if (now < refresh.firstSeenAt + DAY || refresh.nextAttemptAt !== null && now < refresh.nextAttemptAt) return expose();
+      // Persist the attempt before the request so a restart cannot repeatedly refresh a token younger than 24h.
+      refresh = { ...refresh, state: 'retrying', lastAttemptAt: now, nextAttemptAt: now + DAY, code: null };
+      await this.#persist({ ...saved, tokenRefresh: refresh });
+      try {
+        if (!saved.pendingRefresh) {
+          const previous = await this.#inspect({ accessToken: saved.accessToken, apiVersion: saved.apiVersion });
+          if (previous?.userId !== this.#expectedUserId || previous?.username?.toLowerCase() !== this.#expectedUsername) throw new ConnectionError('WRONG_ACCOUNT');
+          renewed = await refreshInstagramToken({ accessToken: saved.accessToken, fetchImpl: this.#fetch });
+          const issuedAt = this.#clock();
+          // Keep an unverified replacement private and inactive if identity verification is interrupted.
+          saved.pendingRefresh = { accessToken: renewed.accessToken, issuedAt, expiresAt: issuedAt + renewed.expiresIn * 1000 };
+          await this.#persist({ ...saved, tokenRefresh: refresh });
+        }
+        const identity = await this.#inspect({ accessToken: saved.pendingRefresh.accessToken, apiVersion: saved.apiVersion });
+        if (identity?.userId !== this.#expectedUserId || identity?.username?.toLowerCase() !== this.#expectedUsername) throw new ConnectionError('WRONG_ACCOUNT');
+        const completedAt = this.#clock();
+        const { pendingRefresh, ...active } = saved;
+        const { expiresAt, issuedAt } = pendingRefresh;
+        refresh = { state: 'scheduled', firstSeenAt: issuedAt, expiresAt, nextAttemptAt: Math.max(issuedAt + DAY, expiresAt - 7 * DAY), lastAttemptAt: now, lastSuccessAt: completedAt, code: null };
+        await this.#persist({ ...active, accessToken: pendingRefresh.accessToken, checkedAt: new Date(completedAt).toISOString(), tokenRefresh: refresh });
+        this.#status = { ...this.#status, connected: true, identity: saved.identity, checkedAt: new Date(completedAt).toISOString(), tokenRefresh: publicRefresh(refresh) };
+        return { ...this.#status.tokenRefresh, refreshed: true };
+      } catch (error) {
+        if (error.code === 'PRIVATE_STORE_FAILED') throw error;
+        const transient = ['NETWORK_ERROR', 'NETWORK_TIMEOUT'].includes(error.code) || error.isTransient === true || error.httpStatus === 429 || error.httpStatus >= 500;
+        const code = error.code === 'WRONG_ACCOUNT' ? 'WRONG_ACCOUNT' : error.graphCode === 190 ? 'TOKEN_REJECTED' : error.code === 'GRAPH_REJECTED' ? 'REFRESH_REJECTED' : REFRESH_CODES.has(error.code) ? error.code : 'IDENTITY_UNVERIFIED';
+        refresh = { ...refresh, state: transient ? 'retrying' : 'reauthorization_required', nextAttemptAt: transient ? now + DAY : null, code };
+        await this.#persist({ ...saved, tokenRefresh: refresh });
+        return expose();
+      }
+    } finally {
+      if (saved) saved.accessToken = undefined;
+      if (renewed) renewed.accessToken = undefined;
+      this.#busy = false;
+    }
+  }
+
+  async #currentAccessToken() {
+    const saved = await this.#savedConnection();
+    return saved.accessToken;
   }
 
   // Available only to the authenticated server. Neither this client nor the
@@ -316,12 +405,12 @@ export class ConnectionService {
       try{identity=await this.#inspect({accessToken:saved.accessToken,apiVersion:saved.apiVersion});}
       catch(error){
         if(error?.outcome==='none'&&['NETWORK_ERROR','NETWORK_TIMEOUT'].includes(error.code))throw error;
-        this.#status={connected:false,identity:null,checkedAt:null,permissionsVerified:false};this.#preflight=null;throw new ConnectionError('TOKEN_VALIDATION_FAILED');
+        this.#status={connected:false,identity:null,checkedAt:null,permissionsVerified:false,...(saved.tokenRefresh?{tokenRefresh:publicRefresh(saved.tokenRefresh)}:{})};this.#preflight=null;throw new ConnectionError('TOKEN_VALIDATION_FAILED');
       }
-      if(identity?.userId!==this.#expectedUserId||identity?.username?.toLowerCase()!==this.#expectedUsername){this.#status={connected:false,identity:null,checkedAt:null,permissionsVerified:false};this.#preflight=null;throw new ConnectionError('WRONG_ACCOUNT');}
-      this.#status={...this.#status,connected:true,identity:{userId:identity.userId,username:identity.username},checkedAt:new Date(this.#clock()).toISOString(),permissionsVerified:identity.permissionsVerified===true};
+      if(identity?.userId!==this.#expectedUserId||identity?.username?.toLowerCase()!==this.#expectedUsername){this.#status={connected:false,identity:null,checkedAt:null,permissionsVerified:false,...(saved.tokenRefresh?{tokenRefresh:publicRefresh(saved.tokenRefresh)}:{})};this.#preflight=null;throw new ConnectionError('WRONG_ACCOUNT');}
+      this.#status={...this.#status,connected:true,identity:{userId:identity.userId,username:identity.username},checkedAt:new Date(this.#clock()).toISOString(),permissionsVerified:identity.permissionsVerified===true,...(saved.tokenRefresh?{tokenRefresh:publicRefresh(saved.tokenRefresh)}:{})};
       const ledger = new SendLedger({directory:path.join(this.#privateDirectory,'ledger'),clock:this.#clock});
-      const client = new GraphClient({accessToken:saved.accessToken,apiVersion:saved.apiVersion,accountId:identity.userId,ledger,fetchImpl:this.#fetch,clock:this.#clock});
+      const client = new GraphClient({accessToken:saved.accessToken,accessTokenProvider:()=>this.#currentAccessToken(),apiVersion:saved.apiVersion,accountId:identity.userId,ledger,fetchImpl:this.#fetch,clock:this.#clock});
       return {client,ledger,identity:{userId:identity.userId,username:identity.username}};
     } finally {saved.accessToken=undefined;}
   }

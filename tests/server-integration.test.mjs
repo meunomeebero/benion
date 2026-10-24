@@ -37,7 +37,7 @@ async function fixture(t, { failSend = false, preview = false, modelProvider = n
   const assistant = new SalesAssistant({ catalogStore: catalog, configStore });
   const inbox = new InboxService({ dataDir, assistant, clock: () => NOW, clientProvider: () => connection.messagingContext() });
   const previewAssistant = preview ? new SalesAssistant({ catalogStore: catalog, configStore: { get: async () => ({ ...await configStore.get(), enabled: true, faqEnabled: true, salesEnabled: true, storyEnabled: true, eligibility: eligible }) },
-    modelAdapter: { selectPlan: async () => { modelCalls++; return { action: 'answer', productId: 'example-app', factIndexes: [0], includeDescription: false, includePrice: false, includeUrl: false, question: null }; } } }) : null;
+    modelAdapter: { respond: async () => { modelCalls++; return { action: 'answer', productId: 'example-app', factIndexes: [0], includeDescription: false, includePrice: false, includeUrl: false, question: null, replyText: 'Pode ser acessado pelo site.' }; } } }) : null;
   const app = createBenionServer({ env: ENV, config: runtimeConfig(ENV), privateDirectory: dataDir, webRoot, owner: OWNER, connection, inbox, catalog, assistantConfig: configStore, previewAssistant, modelProvider, clock: () => NOW });
   await new Promise(resolve => app.server.listen(0, '127.0.0.1', resolve));
   const port = app.server.address().port;

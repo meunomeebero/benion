@@ -461,7 +461,7 @@ test('a valid one-use nonce allows identity validation; responses and status nev
   assert.equal(status.headers.get('cache-control'), 'no-store');
   const statusText = await status.text();
   assert.equal(statusText.includes(FAKE_TOKEN), false);
-  assert.deepEqual(Object.keys(JSON.parse(statusText)).sort(), ['checkedAt', 'connected', 'identity', 'permissionsVerified']);
+  assert.deepEqual(Object.keys(JSON.parse(statusText)).sort(), ['checkedAt', 'connected', 'identity', 'permissionsVerified', 'tokenRefresh']);
 }));
 
 test('expired nonces and malformed or oversized JSON are rejected without provider calls', async () => {

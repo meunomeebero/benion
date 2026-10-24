@@ -372,6 +372,10 @@ function displayConnection(status) {
     const timestamp = Number.isNaN(checked.getTime()) ? '' : ` Última validação: ${new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short', timeZone: 'America/Sao_Paulo' }).format(checked)}.`;
     setHint('#connection-details', 'success', running ? `Identidade confirmada pela API oficial.${timestamp} O envio automático acompanha novos comentários enquanto o serviço estiver em execução.` : `Identidade confirmada pela API oficial.${timestamp} ${legacyAccountSelected() ? 'Verifique os acessos e a recuperação' : 'Verifique os acessos e revise uma automação desta conta'} antes de ativar o envio.`);
   } else setHint('#connection-details', 'warning', 'A identidade ainda não foi verificada nesta sessão do servidor. Use Verificar acessos para revalidar o token salvo. Validar a identidade não ativa a automação nem envia DMs.');
+  const renewal = status?.tokenRefresh;
+  const renewalNote = renewal?.state === 'reauthorization_required' ? 'Renovação interrompida: substitua o token para reconectar a conta.' : renewal?.state === 'retrying' ? 'A renovação encontrou uma falha temporária. O servidor tentará novamente no horário registrado.' : renewal?.state === 'scheduled' ? 'Renovação automática programada antes do vencimento.' : renewal?.state === 'waiting' ? 'Renovação automática aguardando a idade mínima do token; vencimento ainda não confirmado.' : '';
+  if (renewalNote) $('#connection-details').append(document.createTextNode(` ${renewalNote}`));
+  if (renewal?.state === 'reauthorization_required') $('#connection-details').dataset.kind = 'warning';
   const nextAccess = JSON.stringify([validated, status?.automation?.running, recoveryReady(status?.capabilities)]);
   if (previousAccess !== nextAccess) renderCampaignList();
   const caps = status?.capabilities;
@@ -1158,7 +1162,7 @@ function renderAssistantConfig() {
     input.checked = config?.[key] === true && feature !== 'follower'; input.disabled = !available || assistantBusy || !eligible;
     const enabled = eligible && config?.enabled === true && config?.[key] === true;
     setStatus(`[data-feature-status="${feature}"]`, enabled ? 'success' : eligible ? 'info' : feature === 'follower' ? 'neutral' : 'warning', enabled ? 'Habilitada' : eligible ? 'Disponível · pausada' : feature === 'follower' ? 'Indisponível' : 'Bloqueada');
-    $(`[data-feature-gate="${feature}"]`).textContent = typeof eligibility?.reason === 'string' && eligibility.reason ? eligibility.reason : feature === 'follower' ? 'A API pública do app não confirmou este gatilho.' : 'Aguardando catálogo, provedor e acessos verificados da API.';
+    $(`[data-feature-gate="${feature}"]`).textContent = typeof eligibility?.reason === 'string' && eligibility.reason ? eligibility.reason : feature === 'follower' ? 'O Benion não tem acesso oficial confirmado ao gatilho de novos seguidores. Use comentários, DMs recebidas ou respostas a Stories.' : 'Aguardando catálogo, provedor e acessos verificados da API.';
   }
   if (config) { setRadioValue('#assistant-config-form', 'assistantTone', ['friendly', 'concise', 'professional'].includes(config.tone) ? config.tone : 'friendly'); $('#assistant-rules').value = config.rules || ''; }
   $('#assistant-tone').disabled = !available || assistantBusy; $('#assistant-rules').disabled = !available || assistantBusy; $('#save-assistant-config').disabled = !available || assistantBusy;
@@ -1458,7 +1462,13 @@ function publicationTime() {
   if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) return NaN;
   return Date.parse(`${value}:00-03:00`);
 }
-function publicationDm() { return `${$('#publishing-dm-text').value.trim()}\n\n${$('#publishing-dm-link').value.trim()}`; }
+function publicationDm() {
+  let link = $('#publishing-dm-link').value.trim();
+  if (publishingData.conversionReporting?.configured && publishingDraftId && publicationHttps(link)) {
+    const attributed = new URL(link); attributed.searchParams.set('benion_campaign', publishingDraftId); link = attributed.href;
+  }
+  return `${$('#publishing-dm-text').value.trim()}\n\n${link}`;
+}
 function publicationHttps(value) { try { const url = new URL(value); return url.protocol === 'https:' && !url.username && !url.password; } catch { return false; } }
 async function loadPublishing() {
   if (!selectedAccountId) { renderPublishing(); return; }
@@ -1472,6 +1482,12 @@ async function loadPublishing() {
   finally { if (currentScope(scope)) renderPublishing(); }
 }
 function publishingFlowHost() { return $({ list: '#publishing-home .flow-actions', group: '#publishing-group-form .flow-actions', detail: '#publishing-detail .flow-actions', editor: '#publishing-form .flow-actions' }[publishingScreen]); }
+function conversionSummary(jobs) {
+  if (!publishingData.conversionReporting?.available) return 'Vendas indisponíveis · conecte o backend do produto';
+  const purchases = jobs.reduce((sum, job) => sum + (job.conversions?.purchases ?? 0), 0);
+  const refunds = jobs.reduce((sum, job) => sum + (job.conversions?.refunded ?? 0), 0);
+  return `${plural(purchases, 'compra confirmada', 'compras confirmadas')} · ${plural(refunds, 'reembolso', 'reembolsos')}`;
+}
 function renderPublishing() {
   $('#publishing-home').hidden = publishingScreen !== 'list'; $('#publishing-group-form').hidden = publishingScreen !== 'group';
   $('#publishing-detail').hidden = publishingScreen !== 'detail'; $('#publishing-form').hidden = publishingScreen !== 'editor';
@@ -1506,7 +1522,7 @@ function renderPublishing() {
   for (const group of groups) {
     const jobs = publishingData.jobs.filter(j => j.groupId === group.id);
     const button = el('button', 'choice'); button.type = 'button'; button.dataset.groupId = group.id;
-    const text = el('span', 'choice-text'); text.append(el('strong', '', group.name), el('span', 'choice-meta', `${plural(jobs.length, 'Reel', 'Reels')} · ver agenda e resultados`));
+    const text = el('span', 'choice-text'); text.append(el('strong', '', group.name), el('span', 'choice-meta', `${plural(jobs.length, 'Reel', 'Reels')} · ${conversionSummary(jobs)}`));
     button.append(text, icon('chevronRight', 'chevron'));
     button.disabled = publishingBusy; button.addEventListener('click', () => { publishingGroupId = group.id; publishingScreen = 'detail'; publishingCancelId = null; publishingCardError = null; $('#publishing-feedback').hidden = true; renderPublishing(); $('#publishing-group-title').focus(); }); list.append(button);
     if (focusedGroup === group.id && !button.disabled) queueMicrotask(() => button.focus());
@@ -1517,7 +1533,7 @@ function renderPublishing() {
     const jobs = publishingData.jobs.filter(j => j.groupId === group.id);
     const known = jobs.filter(j => j.mediaId && j.metrics);
     const accepted = known.reduce((sum, j) => sum + j.metrics.accepted, 0);
-    $('#publishing-group-summary').textContent = `${plural(jobs.length, 'Reel', 'Reels')} · ${plural(accepted, 'DM aceita', 'DMs aceitas')}${jobs.some(j => j.mediaId && !j.metrics) ? ' · alguns resultados estão indisponíveis' : ''}${ready || loading ? '' : ' · dados podem estar desatualizados'}`;
+    $('#publishing-group-summary').textContent = `${plural(jobs.length, 'Reel', 'Reels')} · ${plural(accepted, 'DM aceita', 'DMs aceitas')} · ${conversionSummary(jobs)}${jobs.some(j => j.mediaId && !j.metrics) ? ' · alguns resultados estão indisponíveis' : ''}${ready || loading ? '' : ' · dados podem estar desatualizados'}`;
     const results = $('#publishing-results');
     // Refreshing keeps open previews, scroll position and keyboard focus.
     const focusKey = document.activeElement?.closest?.('#publishing-results [data-focus-key]')?.dataset.focusKey;
@@ -1544,7 +1560,8 @@ function publicationCard(job, ready) {
   card.append(top, el('p', 'list-status', `${publicationDate(job.scheduledAt)} · São Paulo`));
   if (job.mediaId) {
     const metrics = el('dl', 'publication-metrics');
-    for (const [label, value] of [['DMs aceitas', job.metrics?.accepted], ['Indeterminadas', job.metrics?.unknown], ['Respostas públicas', job.metrics?.publicAccepted]]) { const item = el('div', ''); item.append(el('dt', '', label), el('dd', '', value == null ? '—' : String(value))); metrics.append(item); } card.append(metrics);
+    for (const [label, value] of [['DMs aceitas', job.metrics?.accepted], ['Indeterminadas', job.metrics?.unknown], ['Respostas públicas', job.metrics?.publicAccepted], ['Compras confirmadas', job.conversions?.purchases], ['Reembolsos', job.conversions?.refunded], ['Compras com cupom', job.conversions?.couponPurchases]]) { const item = el('div', ''); item.append(el('dt', '', label), el('dd', '', value == null ? '—' : String(value))); metrics.append(item); } card.append(metrics);
+    card.append(el('p', 'list-status', job.conversions?.available ? 'Compras informadas pelo backend do produto. Atribuição por link compartilhável; cliques não são medidos.' : 'Vendas indisponíveis até receber uma confirmação autenticada do backend do produto.'));
     if (job.automation) card.append(statusPill(job.automation.running ? 'success' : job.automation.enabled ? 'warning' : 'neutral', job.automation.running ? 'Automação de comentários ativa' : job.automation.enabled ? 'Automação de comentários precisa de atenção' : 'Automação de comentários pausada'));
     if (job.permalink) { const link = el('a', 'button ghost', 'Ver Reel no Instagram'); link.href = job.permalink; link.target = '_blank'; link.rel = 'noopener noreferrer'; link.dataset.focusKey = `link-${job.id}`; link.append(icon('external'), el('span', 'sr-only', ' (abre em nova aba)')); card.append(link); }
   }
@@ -1555,7 +1572,7 @@ function publicationCard(job, ready) {
   const preview = el('details', 'disclosure publication-copy'); const summary = el('summary'); summary.dataset.focusKey = `copy-${job.id}`; summary.append(icon('chevronRight'), document.createTextNode('Ver legenda e DM'));
   preview.open = publicationOpenCopies.has(job.id);
   preview.addEventListener('toggle', () => { if (preview.open) publicationOpenCopies.add(job.id); else publicationOpenCopies.delete(job.id); });
-  preview.append(summary, el('h3', '', 'Legenda'), el('p', 'preserve-lines', job.caption || 'Sem legenda'), el('h3', '', 'DM'), el('p', 'preserve-lines', `${job.dmText}\n\n${job.dmLink}`)); card.append(preview);
+  preview.append(summary, el('h3', '', 'Legenda'), el('p', 'preserve-lines', job.caption || 'Sem legenda'), el('h3', '', 'DM'), el('p', 'preserve-lines', `${job.dmText}\n\n${job.deliveryDmLink ?? job.dmLink}`)); card.append(preview);
   if (['scheduled', 'processing', 'ready'].includes(job.state)) {
     const cancelling = publishingBusy && publishingAction === 'cancel' && publishingCancelId === job.id;
     if (publishingCancelId === job.id) {

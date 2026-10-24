@@ -41,6 +41,10 @@ export class ModelProviderStore {
     if (!this.#adapter) fail('MODEL_NOT_CONFIGURED');
     return this.#adapter.selectPlan(input);
   }
+  async respond(input) {
+    if (!this.#adapter) fail('MODEL_NOT_CONFIGURED');
+    return this.#adapter.respond(input);
+  }
   async set(input) {
     if (!input || typeof input !== 'object' || Array.isArray(input) || Object.keys(input).length !== 1 || !Object.hasOwn(input, 'apiKey') || !keyValid(input.apiKey)) fail('MODEL_CONFIG_INVALID');
     const apiKey = input.apiKey;

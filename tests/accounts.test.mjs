@@ -81,7 +81,7 @@ test('registered accounts have private isolated runtimes, empty paused state, re
 
 test('real account activation requires a verified model key and an official inbound for that account', async t => {
   let status = { configured: false, name: 'openrouter', model: 'openai/gpt-6-luna', verifiedAt: null };
-  const provider = { publicStatus: () => status, selectPlan: async () => { throw Error('No model request in this test'); } };
+  const provider = { publicStatus: () => status, respond: async () => { throw Error('No model request in this test'); } };
   const f = await fixture(t, { modelProvider: provider });
   await f.original.assertAssistantActivation({ enabled: false, faqEnabled: true });
   await assert.rejects(f.original.assertAssistantActivation({ enabled: true, faqEnabled: true }), { code: 'MODEL_VERIFICATION_REQUIRED' });

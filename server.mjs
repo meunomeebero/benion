@@ -9,6 +9,7 @@ import { runtimeConfig, AdminAccess, loginPage, readRequest } from './runtime.mj
 import { AccountRegistry, createAccountRuntime } from './accounts.mjs';
 import { ModelProviderStore, DEFAULT_MODEL } from './llm-provider.mjs';
 import { loadOwnerConfig } from './owner-config.mjs';
+import { verifyConversionSignature, conversionSecretReady } from './conversions.mjs';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const packagedRelease=await fs.readFile(path.join(root,'release.json'),'utf8').then(JSON.parse).catch(()=>null);
@@ -63,6 +64,7 @@ export function createBenionServer({env=process.env,config=runtimeConfig(env),we
   const revision=/^[a-f0-9]{64}$/.test(packagedRelease?.revision||'')?packagedRelease.revision:/^[a-f0-9]{7,64}$/.test(env.BENION_RELEASE_REVISION||'')?env.BENION_RELEASE_REVISION:'local';
   const json=(res,status,data)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8'}).end(JSON.stringify(data));};
   const worker=()=>accounts.runtimes().then(values=>Promise.allSettled(values.flatMap(value=>[
+    ...(value.connection?.refreshIfDue?[value.connection.refreshIfDue()]:[]),
     ...(value.inbox?.processPending?[value.inbox.processPending()]:[]),
     ...(value.campaigns?.restoreRunning?[value.campaigns.restoreRunning()]:[]),
     ...(value.publishing?.processDue?[value.publishing.processDue()]:[]),
@@ -117,6 +119,18 @@ export function createBenionServer({env=process.env,config=runtimeConfig(env),we
         await accounts.ingestWebhook(payload);
         json(res,200,{accepted:true});setImmediate(worker);return;
       }
+      const conversionWebhook=/^\/webhooks\/conversions\/(\d{1,40})$/.exec(url.pathname);
+      if(conversionWebhook){
+        if(req.method!=='POST'){res.writeHead(405).end();return;}
+        if(!conversionSecretReady(env.BENION_CONVERSION_SECRET)){json(res,503,{error:'CONVERSIONS_NOT_CONFIGURED'});return;}
+        const raw=await readRequest(req,{raw:true,maxBytes:4096});
+        if(!verifyConversionSignature(raw,req.headers['x-benion-timestamp'],req.headers['x-benion-signature'],env.BENION_CONVERSION_SECRET,clock())){json(res,403,{error:'INVALID_SIGNATURE'});return;}
+        let payload;try{payload=JSON.parse(raw.toString('utf8'));}catch{json(res,400,{error:'INVALID_BODY'});return;}
+        if(payload?.accountId!==conversionWebhook[1]){json(res,400,{error:'CONVERSION_ACCOUNT_MISMATCH'});return;}
+        const selected=await accounts.resolve(conversionWebhook[1]);
+        if(!selected.conversions){json(res,503,{error:'CONVERSIONS_NOT_CONFIGURED'});return;}
+        json(res,200,await selected.conversions.ingest(payload));return;
+      }
       if(!access.authenticated(req)){
         if(url.pathname.startsWith('/api/'))json(res,401,{error:'AUTH_REQUIRED',message:'Entre no painel para continuar.'});
         else res.writeHead(303,{Location:'/admin/login'}).end();
@@ -153,10 +167,17 @@ export function createBenionServer({env=process.env,config=runtimeConfig(env),we
           if(!records){json(res,404,{error:'RECOVERY_NOT_AVAILABLE'});return;}
           json(res,200,records);return;
         }
-        const {connection,inbox,catalog,assistantConfig,previewAssistant,campaigns,publishing}=selected;
+        const {connection,inbox,catalog,assistantConfig,previewAssistant,campaigns,publishing,conversions,contentWorkflow}=selected;
         const {connectionHandler,transition}=controlled(selected);
         if(await connectionHandler(req,res))return;
-        if(req.method==='GET'&&url.pathname==='/api/publishing'){json(res,200,publishing?await publishing.list():{available:false,groups:[],jobs:[]});return;}
+        if(req.method==='GET'&&url.pathname==='/api/publishing'){
+          const data=publishing?await publishing.list():{available:false,groups:[],jobs:[]};
+          const reporting=conversions?await conversions.report(data.jobs.map(job=>job.id)):null;
+          json(res,200,{...data,conversionReporting:reporting&&{configured:reporting.configured,available:reporting.available,verifiedAt:reporting.verifiedAt},jobs:data.jobs.map(job=>({...job,conversions:reporting?.metrics[job.id]??null}))});return;
+        }
+        if(req.method==='GET'&&url.pathname==='/api/content-workflow'&&contentWorkflow){json(res,200,await contentWorkflow.list());return;}
+        const contentAction=new Map([['config','configure'],['reserve','reserve'],['start','startGeneration'],['generation','recordGeneration'],['asset','recordAsset'],['schedule','schedule']]).get(url.pathname.slice('/api/content-workflow/'.length));
+        if(req.method==='POST'&&url.pathname.startsWith('/api/content-workflow/')&&contentAction&&contentWorkflow){json(res,200,await contentWorkflow[contentAction](await readRequest(req,{json:true,maxBytes:30000})));return;}
         if(req.method==='POST'&&publishing&&url.pathname==='/api/publishing/groups'){json(res,200,await publishing.createGroup(await readRequest(req,{json:true,maxBytes:2048})));return;}
         if(req.method==='POST'&&publishing&&url.pathname==='/api/publishing/reels'){json(res,200,await publishing.schedule(await readRequest(req,{json:true,maxBytes:20000})));return;}
         if(req.method==='POST'&&publishing&&url.pathname==='/api/publishing/video'){json(res,200,await publishing.upload(req));return;}

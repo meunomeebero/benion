@@ -17,8 +17,11 @@ Use `.env.example` as a variable reference. Store actual production values in yo
 | `BENION_META_APP_SECRET`, `BENION_META_VERIFY_TOKEN` | Signed webhooks and callback verification |
 | `BENION_OPERATOR_NAME`, `BENION_PRIVACY_EMAIL` | Your identity/contact on `/privacy` |
 | `BENION_LLM_MODEL` | Model ID supported by your configured provider |
+| `BENION_CONVERSION_SECRET` | Optional distinct secret, at least 32 characters, shared only with your product backend for [purchase/refund callbacks](conversions.md) |
 
 Set the privacy identity/contact to your own details before connecting a live account. Keep the admin password and session secret stable across normal restarts. The browser cookie persists until logout or browser expiry; server-side revocation and credential changes can invalidate it.
+
+The worker also renews eligible Instagram tokens; this is separate from content generation tasks. Imported tokens have unknown expiry until the first verified refresh. Reauthorization errors appear in the account connection details. Hosting does not include model inference or video-generation credits. Optional agent generation needs its own scheduler and provider access; see [content workflow](content-workflow.md).
 
 Default state location: `~/.local/share/benion` locally, `.benion-private` beside the server in production. Keep its permissions private (directories 0700, files 0600). For local isolated development, set `BENION_DATA_DIR` to a fresh absolute path and `BENION_PORT` to a free port. Never point a test at operational state.
 

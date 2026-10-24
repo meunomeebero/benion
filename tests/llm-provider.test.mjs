@@ -6,7 +6,7 @@ import path from 'node:path';
 import { ModelProviderStore, DEFAULT_MODEL } from '../llm-provider.mjs';
 
 const KEY = 'test-only-private-provider-key';
-const PLAN = { action: 'answer', productId: 'benion-test', factIndexes: [], includeDescription: true, includePrice: false, includeUrl: false, question: null };
+const PLAN = { action: 'answer', productId: 'benion-test', factIndexes: [], includeDescription: true, includePrice: false, includeUrl: false, question: null, replyText: 'É um produto fictício para validar a conexão.' };
 const status = { configured: true, name: 'openrouter', model: DEFAULT_MODEL, verifiedAt: '2026-10-05T18:00:00.000Z' };
 async function fixture(t, { rejectKey = false, rejectModel = false } = {}) {
   const dataDir = await mkdtemp(path.join(os.tmpdir(), 'benion-provider-'));

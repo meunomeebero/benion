@@ -222,6 +222,7 @@ export class SendLedger {
 
 export class GraphClient {
   #accessToken;
+  #accessTokenProvider;
   #apiVersion;
   #accountId;
   #fetch;
@@ -229,8 +230,10 @@ export class GraphClient {
   #timeoutMs;
   #clock;
 
-  constructor({ accessToken, apiVersion, accountId, ledger, fetchImpl = globalThis.fetch, timeoutMs = 15000, clock = Date.now }) {
+  constructor({ accessToken, accessTokenProvider = null, apiVersion, accountId, ledger, fetchImpl = globalThis.fetch, timeoutMs = 15000, clock = Date.now }) {
     this.#accessToken = required(accessToken, 'Access Token');
+    if (accessTokenProvider !== null && typeof accessTokenProvider !== 'function') throw new MetaError('INVALID_CLIENT_CONFIG', 'Configuração de credencial inválida.');
+    this.#accessTokenProvider = accessTokenProvider;
     this.#apiVersion = required(apiVersion, 'API Version');
     if (!/^v\d+\.0$/.test(apiVersion)) throw new MetaError('INVALID_VERSION', 'A versão da API precisa ser explícita.');
     this.#accountId = id(accountId, 'accountId');
@@ -259,7 +262,7 @@ export class GraphClient {
         (async () => {
           const response = await this.#fetch(url, {
             method, redirect: 'error', signal: controller.signal,
-            headers: { Authorization: `Bearer ${this.#accessToken}`, ...(body ? { 'Content-Type': 'application/json' } : {}) },
+            headers: { Authorization: `Bearer ${this.#accessTokenProvider ? required(await this.#accessTokenProvider(), 'Access Token') : this.#accessToken}`, ...(body ? { 'Content-Type': 'application/json' } : {}) },
             ...(body ? { body: JSON.stringify(body) } : {}),
           });
           let data;
@@ -580,5 +583,51 @@ export async function inspectInstagramToken({ accessToken, apiVersion, fetchImpl
   } catch (error) {
     if (error instanceof MetaError) throw error;
     throw new MetaError('NETWORK_ERROR', 'Não foi possível verificar a identidade deste token.', { outcome: 'none' });
+  } finally { clearTimeout(timer); }
+}
+
+// Server-only. A successful refresh confirms the provider's long-lived-token eligibility.
+export async function refreshInstagramToken({ accessToken, fetchImpl = globalThis.fetch, timeoutMs = 15000 } = {}) {
+  required(accessToken, 'Access Token');
+  if (typeof fetchImpl !== 'function' || !Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 60000) {
+    throw new MetaError('INVALID_CLIENT_CONFIG', 'Configuração de transporte inválida.');
+  }
+  const url = new URL(`${GRAPH_ORIGIN}/refresh_access_token`);
+  url.searchParams.set('grant_type', 'ig_refresh_token');
+  url.searchParams.set('access_token', accessToken);
+  const controller = new AbortController();
+  let timer;
+  try {
+    return await Promise.race([
+      (async () => {
+        const response = await fetchImpl(url, { method: 'GET', redirect: 'error', signal: controller.signal });
+        let body;
+        try { body = await response.json(); }
+        catch { throw new MetaError('TOKEN_RESPONSE_INVALID', 'A Meta não confirmou a renovação.', { outcome: 'unknown' }); }
+        if (!response.ok || body?.error) {
+          throw new MetaError('GRAPH_REJECTED', 'A Meta recusou a renovação.', {
+            outcome: 'rejected', httpStatus: response.status,
+            ...(Number.isInteger(body?.error?.code) ? { graphCode: body.error.code } : {}),
+            ...(Number.isInteger(body?.error?.error_subcode) ? { graphSubcode: body.error.error_subcode } : {}),
+            isTransient: body?.error?.is_transient === true,
+          });
+        }
+        if (typeof body?.access_token !== 'string' || !/^[\x21-\x7e]{16,8192}$/.test(body.access_token) ||
+            !Number.isInteger(body.expires_in) || body.expires_in <= 0 || body.expires_in > 60 * 24 * 60 * 60 ||
+            typeof body.token_type !== 'string' || body.token_type.toLowerCase() !== 'bearer') {
+          throw new MetaError('TOKEN_RESPONSE_INVALID', 'A Meta não confirmou a validade da renovação.', { outcome: 'unknown' });
+        }
+        return { accessToken: body.access_token, expiresIn: body.expires_in };
+      })(),
+      new Promise((_, reject) => {
+        timer = setTimeout(() => {
+          controller.abort();
+          reject(new MetaError('NETWORK_TIMEOUT', 'A renovação expirou sem confirmação.', { outcome: 'unknown' }));
+        }, timeoutMs);
+      }),
+    ]);
+  } catch (error) {
+    if (error instanceof MetaError) throw error;
+    throw new MetaError('NETWORK_ERROR', 'Não foi possível confirmar a renovação.', { outcome: 'unknown' });
   } finally { clearTimeout(timer); }
 }

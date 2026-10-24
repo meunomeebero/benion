@@ -10,6 +10,8 @@ import { InboxService, normalizeInstagramWebhook, modelReady } from './inbox.mjs
 import { CatalogStore, AssistantConfigStore, SalesAssistant, createSalesModelFromEnv } from './sales.mjs';
 import { CampaignService } from './campaigns.mjs';
 import { PublishingService } from './publishing.mjs';
+import { ConversionService, conversionSecretReady } from './conversions.mjs';
+import { ContentWorkflow } from './content-workflow.mjs';
 
 const numeric = value => typeof value === 'string' && /^\d{1,40}$/.test(value);
 const username = value => typeof value === 'string' && /^[a-z0-9_.]{1,30}$/.test(value);
@@ -60,7 +62,11 @@ export function createAccountRuntime({ account, dataDir, servedRoot, inspectToke
       await connection.verifyAccess({});
       return connection.campaignRecovery(scope);
     } : null });
-  publishing = new PublishingService({ dataDir, accountId: account.id, clientProvider: () => connection.messagingContext(), campaigns, clock, origin: env.BENION_PUBLIC_ORIGIN });
+  const conversionConfigured = conversionSecretReady(env.BENION_CONVERSION_SECRET);
+  publishing = new PublishingService({ dataDir, accountId: account.id, clientProvider: () => connection.messagingContext(), campaigns, clock, origin: env.BENION_PUBLIC_ORIGIN, conversionTracking: conversionConfigured });
+  const conversions = new ConversionService({ dataDir, accountId: account.id, configured: conversionConfigured, clock,
+    campaignExists: async id => await publishing.hasCampaign(id) || (await campaigns.list()).campaigns.some(campaign => campaign.id === id) });
+  const contentWorkflow = new ContentWorkflow({ dataDir, accountId: account.id, publishing, clock });
   const assertAssistantActivation = async input => {
     const current = await assistantConfig.get();
     const enabled = Object.hasOwn(input ?? {}, 'enabled') ? input.enabled : current.enabled;
@@ -71,7 +77,7 @@ export function createAccountRuntime({ account, dataDir, servedRoot, inspectToke
       if (selected === true && current.eligibility[feature]?.eligible !== true) fail('ASSISTANT_ELIGIBILITY_REQUIRED');
     }
   };
-  return { connection, inbox, catalog, assistantConfig, previewAssistant, campaigns, publishing, assertAssistantActivation, legacy };
+  return { connection, inbox, catalog, assistantConfig, previewAssistant, campaigns, publishing, conversions, contentWorkflow, assertAssistantActivation, legacy };
 }
 
 export class AccountRegistry {

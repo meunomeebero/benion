@@ -6,6 +6,9 @@ A self-hosted Instagram automation dashboard for your own professional accounts.
 - Schedule Reels, attach their DM/link during scheduling, and compare API-accepted sends by campaign.
 - Keep accounts, catalogs and conversations separate; take over a conversation from the assistant.
 - Resume enabled campaigns after restart. Manually paused campaigns stay paused. Uncertain sends and publications require reconciliation before retrying.
+- Renew eligible Instagram tokens in the hosted worker, with identity verification before replacing credentials.
+- Prepare agent-generated videos with durable trend reservations and resume interrupted jobs: [workflow](docs/content-workflow.md) and [reusable prompts](docs/prompts.md).
+- Attribute confirmed purchases and refunds to campaigns through a signed backend callback: [conversion integration](docs/conversions.md).
 
 ## Start
 
@@ -36,14 +39,33 @@ A comment permits one initial private reply within seven days. Follow-up messagi
 | `integrations/meta.mjs` | Official Meta HTTP transport and normalized provider outcomes |
 | `automation.mjs`, `campaigns.mjs` | Comment polling, durable deduplication, campaign activation/recovery |
 | `publishing.mjs` | Scheduled publication and campaign creation |
+| `content-workflow.mjs`, `scripts/content-workflow.mjs` | Private trend/slot reservations, generation receipts and agent scheduling CLI |
+| `conversions.mjs` | Authenticated purchase/refund receipts and campaign attribution |
 | `inbox.mjs`, `sales.mjs`, `llm-provider.mjs` | Inbound events, human takeover, catalog-grounded model decisions |
 | `app.mjs`, `ui/api.mjs`, `index.html`, CSS | Dashboard controllers, account-scoped API client and UI |
 | `simulator.mjs` | Isolated legacy demo; never sends Instagram messages |
 | `tests/` | Synthetic core-flow, auth and data-safety checks |
 
-The dashboard currently uses Portuguese, and scheduling uses São Paulo time. Follower greetings and automatic comment likes are not implemented. Comment campaigns poll on the server; incoming conversations use signed webhooks.
+The dashboard currently uses Portuguese, and scheduling uses São Paulo time. Agent content series can use a configured IANA time zone. Follower greetings and automatic comment likes remain unavailable; see the current [Meta eligibility evidence](docs/meta-setup.md). Comment campaigns poll on the server; incoming conversations use signed webhooks.
 
 Private state is outside the served directory. New accounts live under `accounts/<id>/`; older installations may retain root-level state via private compatibility configuration. Never delete ledgers to fix a campaign: that can remove duplicate-send protection. See [security and data handling](docs/security.md).
+
+## Capabilities and costs
+
+Benion is a personal Instagram alternative to a subset of ManyChat, not a promise of every ManyChat feature or provider exemption. MIT makes this source free to use and modify; hosting, storage, model inference and Higgsfield generation can cost money. Your Codex subscription is not an OpenRouter/API credential, and Higgsfield access/credits must be configured separately. Never paste secrets into prompts or source files.
+
+| Capability | Runs where | Boundary |
+|---|---|---|
+| Comment DM, fixed public replies, scheduled Reels | Benion server | Owned professional account, relevant permissions and provider limits; API acceptance is not delivery |
+| Contextual FAQ/sales and Story replies | Benion server + configured model API | Signed inbound event, verified recipient, open 24-hour reply window; model grounding review may escalate to a human |
+| Natural sales conversation | Configured model API + catalog | Uses conversation history and verified catalog facts. The model drafts and reviews the reply; this reduces unsupported claims but cannot guarantee model accuracy. You can take over at any time |
+| Two daily content runs | Your coding agent's scheduler + Higgsfield | Optional owner-configured tasks, local computer availability if required by that scheduler, approved generation costs and publication authority |
+| Token renewal | Benion server | Eligible long-lived, unexpired tokens only; revoked or expired credentials require owner reconnection |
+| Coupon attribution | Product backend → Benion | The product implements eligibility, checkout and payment verification; an accepted DM is never counted as a purchase |
+| New-follower welcome DM, automatic comment likes | Unavailable | No confirmed supported trigger/operation for this app; the UI cannot enable it |
+| X/Twitter messages | External to Benion | No X connector is included |
+
+The server recovers enabled campaigns and checks scheduled publications without Codex. The agent only prepares new content; it is not a second campaign monitor. Unknown send, generation or publishing outcomes stay blocked until reconciled with the provider. Open items and provider-blocked capabilities remain visible on the [project board](https://github.com/users/meunomeebero/projects/1).
 
 ## Contributing
 

@@ -1,5 +1,6 @@
 // Hosted, account-scoped Reel scheduling. No browser or Codex timer is required.
 import path from 'node:path';
+import { campaignLink } from './conversions.mjs';
 import { randomUUID } from 'node:crypto';
 import { constants } from 'node:fs';
 import { mkdir, lstat, open, rename, unlink, readdir } from 'node:fs/promises';
@@ -23,10 +24,11 @@ function configuration(body) {
 }
 
 export class PublishingService {
-  #dir; #account; #provider; #campaigns; #clock; #origin; #queue = Promise.resolve(); #working = null; #closed = false;
-  constructor({ dataDir, accountId, clientProvider, campaigns, clock = Date.now, origin }) {
+  #dir; #account; #provider; #campaigns; #clock; #origin; #conversionTracking; #queue = Promise.resolve(); #working = null; #closed = false;
+  constructor({ dataDir, accountId, clientProvider, campaigns, clock = Date.now, origin, conversionTracking = false }) {
     if (!path.isAbsolute(dataDir) || !numeric(accountId) || typeof clientProvider !== 'function' || !campaigns) fail('PUBLISHING_CONFIG_INVALID');
     this.#dir = dataDir; this.#account = accountId; this.#provider = clientProvider; this.#campaigns = campaigns; this.#clock = clock; this.#origin = origin;
+    this.#conversionTracking = conversionTracking;
   }
   #serial(work) { const next = this.#queue.then(work); this.#queue = next.catch(() => {}); return next; }
   async #directory() {
@@ -45,7 +47,7 @@ export class PublishingService {
           new Set(state.groups.map(g => g.id)).size !== state.groups.length || new Set(state.jobs.map(j => j.id)).size !== state.jobs.length ||
           state.groups.some(g => !UUID.test(g.id) || !text(g.name, 80)) || state.jobs.some(j => !UUID.test(j.id) || !states.includes(j.state) ||
             !state.groups.some(g => g.id === j.groupId) || !Number.isFinite(Date.parse(j.scheduledAt)) || !https(j.videoUrl) ||
-            !text(j.title, 80) || !text(j.caption, 4400, true) || !text(j.dmText, 1000) || !https(j.dmLink) ||
+            !text(j.title, 80) || !text(j.caption, 4400, true) || !text(j.dmText, 1000) || !https(j.dmLink) || (j.deliveryDmLink !== undefined && !https(j.deliveryDmLink)) ||
             (j.containerId != null && !numeric(j.containerId)) || (j.mediaId != null && !numeric(j.mediaId)) ||
             (j.attemptedAt != null && !Number.isSafeInteger(j.attemptedAt)) ||
             (j.knownMediaIds !== undefined && (!Array.isArray(j.knownMediaIds) || j.knownMediaIds.length > 500 || !j.knownMediaIds.every(numeric))))) fail('PUBLISHING_STORE_INVALID');
@@ -71,6 +73,7 @@ export class PublishingService {
     return { blocked: uncertain.length > 0, knownMediaIds: uncertain.length ? (uncertain[0].knownMediaIds || []).filter(id => uncertain.every(j => j.knownMediaIds?.includes(id))) : [],
       mediaIds: state.jobs.filter(j => j.mediaId).map(j => j.mediaId) };
   }
+  async hasCampaign(id) { return (await this.#read()).jobs.some(job => job.id === id); }
   async list() {
     const state = await this.#read();
     const jobs = [];
@@ -106,7 +109,9 @@ export class PublishingService {
       if (state.jobs.length >= 500) fail('SCHEDULE_LIMIT');
       if (Date.parse(values.scheduledAt) < this.#clock() + MINUTE) fail('SCHEDULE_IN_PAST');
       await this.#context(); // Verify the selected identity, never publish on Save.
-      const row = { ...values, state: 'scheduled', reason: null, createdAt: new Date(this.#clock()).toISOString(), containerId: null, mediaId: null, attemptedAt: null };
+      const deliveryDmLink = this.#conversionTracking ? campaignLink(values.dmLink, values.id) : values.dmLink;
+      if (Buffer.byteLength(`${values.dmText}\n\n${deliveryDmLink}`, 'utf8') > 1000) fail('PUBLICATION_DM_TOO_LONG');
+      const row = { ...values, deliveryDmLink, state: 'scheduled', reason: null, createdAt: new Date(this.#clock()).toISOString(), containerId: null, mediaId: null, attemptedAt: null };
       state.jobs.push(row); await this.#write(state); return row;
     });
   }
@@ -180,7 +185,7 @@ export class PublishingService {
     if (job.state === 'published') {
       // The stable job ID makes this recovery idempotent across server restarts.
       const campaign = await this.#campaigns.createFromPublication({ id: job.id, mediaId: job.mediaId, name: job.title,
-        messageText: `${job.dmText}\n\n${job.dmLink}`, cutoff: job.attemptedAt - 1000 });
+        messageText: `${job.dmText}\n\n${job.deliveryDmLink ?? job.dmLink}`, cutoff: job.attemptedAt - 1000 });
       if (!campaign.status.running && campaign.enabled) fail('PUBLICATION_DM_PENDING');
       job.state = 'active'; job.reason = null; job.permalink = campaign.reel.permalink; await this.#write(state);
     }

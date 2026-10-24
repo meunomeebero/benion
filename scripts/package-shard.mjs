@@ -7,7 +7,7 @@ import {execFileSync} from 'node:child_process';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const output=path.resolve(process.argv[2]||path.join(os.tmpdir(),'benion-shard.zip'));
-const files=['LICENSE','.shardcloud','package.json','server.mjs','runtime.mjs','connection.mjs','accounts.mjs','owner-config.mjs','automation.mjs','campaigns.mjs','publishing.mjs','inbox.mjs','sales.mjs','llm-provider.mjs','integrations/meta.mjs','login.css','tokens.css','fonts/nunito-500.ttf','fonts/nunito-700.ttf','fonts/nunito-800.ttf','fonts/OFL.txt','privacy-page/index.html'];
+const files=['LICENSE','.shardcloud','package.json','server.mjs','runtime.mjs','connection.mjs','accounts.mjs','owner-config.mjs','automation.mjs','campaigns.mjs','publishing.mjs','conversions.mjs','content-workflow.mjs','inbox.mjs','sales.mjs','llm-provider.mjs','integrations/meta.mjs','login.css','tokens.css','fonts/nunito-500.ttf','fonts/nunito-700.ttf','fonts/nunito-800.ttf','fonts/OFL.txt','privacy-page/index.html'];
 const publicFiles=['index.html','styles.css','app.mjs','simulator.mjs','ui/api.mjs'];
 const stage=await fs.mkdtemp(path.join(os.tmpdir(),'benion-package-'));
 try{
