@@ -292,10 +292,18 @@ export class CampaignService {
   }
   create(body) {
     return this.#serial(async () => {
-      const values = configuration(body);
+      const { id = randomUUID(), ...input } = body || {};
+      if (!UUID.test(id)) fail('CAMPAIGN_CONFIG_INVALID', 'Identificador inválido.');
+      const values = configuration(input);
+      const existing = (await this.#read()).campaigns.find(row => row.id === id);
+      if (existing) {
+        const previous = configuration(Object.fromEntries([...FIELDS].map(key => [key, key === 'publicReplies' ? existing[key] ?? [] : existing[key]])));
+        if (existing.fromPublication || JSON.stringify(previous) !== JSON.stringify(values)) fail('CAMPAIGN_CONFLICT', 'O identificador já pertence a outra configuração.');
+        return this.#dto(existing);
+      }
       const reel = values.scope === 'all_reels' ? null : await this.#confirmedReel(await this.#context(), values.mediaId);
       const now = new Date(this.#clock()).toISOString();
-      const row = { id: randomUUID(), ...values, enabled: false, reel, createdAt: now, updatedAt: now, status: emptyStatus() };
+      const row = { id, ...values, enabled: false, reel, createdAt: now, updatedAt: now, status: emptyStatus() };
       await this.#edit(state => { if (state.campaigns.length >= 100) fail('CAMPAIGN_LIMIT_REACHED', 'O limite de campanhas foi atingido.'); state.campaigns.push(row); return row; });
       return this.#dto(row);
     });

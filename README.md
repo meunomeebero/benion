@@ -2,6 +2,7 @@
 
 A self-hosted Instagram automation dashboard for your own professional accounts. MIT licensed; plain Node.js and browser modules, with no runtime dependencies or build step.
 
+- Control accounts, campaigns, scheduled Reels and conversations through the hosted [MCP server](docs/mcp.md).
 - Send a configured DM for comments on one Reel or all Reels, with optional public replies.
 - Schedule Reels, attach their DM/link during scheduling, and compare API-accepted sends by campaign.
 - Keep accounts, catalogs and conversations separate; take over a conversation from the assistant.
@@ -34,6 +35,7 @@ A comment permits one initial private reply within seven days. Follow-up messagi
 
 | Module | Responsibility |
 |---|---|
+| `mcp.mjs`, `mcp-tools.mjs` | Authenticated Streamable HTTP MCP transport and account-scoped service tools |
 | `server.mjs`, `runtime.mjs` | HTTP routes, session/CSRF security, startup and worker lifecycle |
 | `accounts.mjs`, `connection.mjs`, `owner-config.mjs` | Account registry, token identity checks, private compatibility configuration |
 | `integrations/meta.mjs` | Official Meta HTTP transport and normalized provider outcomes |

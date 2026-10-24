@@ -10,6 +10,8 @@ import { AccountRegistry, createAccountRuntime } from './accounts.mjs';
 import { ModelProviderStore, DEFAULT_MODEL } from './llm-provider.mjs';
 import { loadOwnerConfig } from './owner-config.mjs';
 import { verifyConversionSignature, conversionSecretReady } from './conversions.mjs';
+import { createMcpHandler, createUploadTickets } from './mcp.mjs';
+import { createMcpTools } from './mcp-tools.mjs';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const packagedRelease=await fs.readFile(path.join(root,'release.json'),'utf8').then(JSON.parse).catch(()=>null);
@@ -69,12 +71,17 @@ export function createBenionServer({env=process.env,config=runtimeConfig(env),we
     ...(value.campaigns?.restoreRunning?[value.campaigns.restoreRunning()]:[]),
     ...(value.publishing?.processDue?[value.publishing.processDue()]:[]),
   ]))).catch(()=>{});
+  const uploads=createUploadTickets({origin:config.origin,clock,upload:async(accountId,request)=>{
+    const selected=await accounts.resolve(accountId);if(!selected.publishing)throw new Error('MCP_RESOURCE_UNAVAILABLE');return selected.publishing.upload(request);}});
+  const mcp=createMcpHandler({token:env.BENION_MCP_TOKEN,origin:config.origin,uploads,
+    tools:createMcpTools({accounts,controlled,modelProvider,env,uploads,worker,clock})});
   const server=http.createServer(async(req,res)=>{
     Object.entries(securityHeaders).forEach(([key,value])=>res.setHeader(key,value));
     if(config.production)res.setHeader('Strict-Transport-Security','max-age=31536000');
     let url;
     try{url=new URL(req.url,config.origin);}catch{json(res,400,{error:'INVALID_REQUEST'});return;}
     try{
+      if(await mcp(req,res,url))return;
       if(url.pathname==='/health'&&req.method==='GET'){json(res,200,{service:'benion',status:'ready',revision});return;}
       const video=/^\/videos\/(\d{1,40})\/([a-f0-9-]{36})\.mp4$/.exec(url.pathname);
       if(video&&['GET','HEAD'].includes(req.method)){
