@@ -31,6 +31,8 @@ Default state location: `~/.local/share/benion` locally, `.benion-private` besid
 node scripts/package-shard.mjs /tmp/benion.zip
 ```
 
+For an existing Shard app with web access, preserve its current subdomain in the archive: `BENION_SHARD_SUBDOMAIN=yourcurrentsubdomain node scripts/package-shard.mjs /tmp/benion.zip`. Shard rejects an upgrade that omits the existing subdomain. This packaging variable adds the deployment-specific value to the archive without putting it in shared source.
+
 This creates an allowlisted runtime archive with browser assets under `public/`. It excludes account data, credentials, histories and documentation. Upload it to your Node host (including Shard Cloud), select a unique application/subdomain, set private environment variables and start `node server.mjs`. Set persistent storage before connecting accounts. Check `/health` for the running source revision, then log in and follow [Meta setup](meta-setup.md).
 
 The source checkout can also be used locally with `node server.mjs`. Production expects the packaged `public/` layout; do not expose the source directory with a generic static file server.
